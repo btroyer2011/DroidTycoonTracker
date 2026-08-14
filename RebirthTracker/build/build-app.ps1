@@ -66,9 +66,29 @@ if ($tpl -notmatch '//__SPRITES__') { throw "template is missing the //__SPRITES
 
 $html = $tpl.Replace("//__SPRITES__", $sprites).Replace("//__DATA__", $sb.ToString())
 
+if ($html -notmatch '<!--__PWA_HEAD__-->') { throw "template is missing the <!--__PWA_HEAD__--> marker" }
+
+# PWA installability tags - spliced in ONLY for the docs/ (GitHub Pages) build. The plain
+# index.html and the Artifact copy stay marker-free: both are meant to be fully self-contained
+# with no sibling files, and a manifest/icon reference would 404 there.
+$PWA_HEAD = @'
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rebirth Tracker">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+'@
+
 $enc = New-Object System.Text.UTF8Encoding($false)
+
+$htmlWithMarker = $html   # keep the pre-strip copy around for the docs/ (PWA) build below
+$plainHtml = $html.Replace("<!--__PWA_HEAD__-->", "")
 $out = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\index.html"))
-[System.IO.File]::WriteAllText($out, $html, $enc)
+[System.IO.File]::WriteAllText($out, $plainHtml, $enc)
+$html = $plainHtml   # everything below (artifact extraction) reads from the marker-free copy
 
 $mb = [math]::Round((Get-Item $out).Length / 1MB, 2)
 $tiles = ([regex]::Matches($sprites, 'data:image/jpeg;base64,')).Count
@@ -92,3 +112,39 @@ $artOut = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "artifact.html"
 [System.IO.File]::WriteAllText($artOut, $art, $enc)
 Write-Output ("wrote build\artifact.html  ({0} MB, wrapper-free copy for publishing)" -f `
               [math]::Round((Get-Item $artOut).Length / 1MB, 2))
+
+# --- GitHub Pages / installable-web-app variant ----------------------------------------
+# A real first-party https:// origin, unlike the Claude Artifact iframe, plus manifest +
+# Apple meta tags so "Add to Home Screen" launches standalone. That combination is what gets
+# iOS to treat this as a home-screen web app instead of a regular Safari tab, which is the
+# documented way to escape Safari's 7-day storage-eviction timer for infrequently-opened sites.
+$pwaHtml = $htmlWithMarker.Replace("<!--__PWA_HEAD__-->", $PWA_HEAD)
+$docsDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\..\docs"))
+New-Item -ItemType Directory -Force -Path $docsDir | Out-Null
+[System.IO.File]::WriteAllText((Join-Path $docsDir "index.html"), $pwaHtml, $enc)
+
+$manifest = @'
+{
+  "name": "Super Rebirth Tracker - Droid Tycoon",
+  "short_name": "Rebirth Tracker",
+  "description": "Track your Super Rebirth progress across all four Droid Tycoon cycles.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07070a",
+  "theme_color": "#07070a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
+'@
+[System.IO.File]::WriteAllText((Join-Path $docsDir "manifest.json"), $manifest, $enc)
+
+$pwaMb = [math]::Round(((Get-Item (Join-Path $docsDir "index.html")).Length) / 1MB, 2)
+Write-Output "wrote docs\index.html + manifest.json  ($pwaMb MB, for GitHub Pages)"
+if (-not (Test-Path (Join-Path $docsDir "icon-192.png"))) {
+    Write-Output "NOTE: docs\icon-*.png not found - run build\make-icons.ps1 once"
+}

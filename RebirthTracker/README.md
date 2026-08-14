@@ -1,13 +1,37 @@
 # Super Rebirth Tracker — Droid Tycoon
 
-Published as a shareable web page:
-**https://claude.ai/code/artifact/97834962-5a31-4c2e-823b-400ef1d53086**
-(private until you share it from the page's share menu). Everyone who opens it gets their own
-saved progress — it's stored per browser, not shared.
+Three ways to open it:
 
-`index.html` is the whole app. Double-click it, or copy that one file to your phone and open
-it — no install, no internet, nothing else needed. The droid art and all four cycle charts are
-baked into the file.
+- **GitHub Pages (recommended on iOS):** https://btroyer2011.github.io/DroidTycoonTracker/
+  — a real page you own, not embedded in anything else. See [iOS: install it properly](#ios-install-it-properly-so-progress-actually-saves)
+  below — this is the one that fixes progress resetting on iPhone.
+- **Claude Artifact:** https://claude.ai/code/artifact/97834962-5a31-4c2e-823b-400ef1d53086
+  (private until you share it from the page's share menu). Convenient for sharing a link in
+  chat, but on iOS this one is prone to losing progress — see below.
+- **The file itself:** `index.html` is the whole app. Double-click it, or copy that one file to
+  your phone and open it — no install, no internet, nothing else needed.
+
+All three are the same app. The droid art and all four cycle charts are baked into each one.
+Progress is saved per browser/device, not shared between them.
+
+## iOS: install it properly, so progress actually saves
+
+If you're on an iPhone and progress resets every time you close and reopen the app, it's iOS
+Safari's storage rules, not a bug in the tracker: sites you haven't opened directly in Safari for
+a few days get their saved data wiped, and content embedded in someone else's page (which is how
+the Claude Artifact link works) is restricted even harder — that's very likely why the Artifact
+link resets constantly on iPhone specifically.
+
+The fix is to open the **GitHub Pages** link above in Safari, then add it to your Home Screen:
+
+1. Open https://btroyer2011.github.io/DroidTycoonTracker/ in **Safari** (not the Claude app,
+   not Chrome — it has to be Safari for this step).
+2. Tap the **Share** icon → **Add to Home Screen** → **Add**.
+3. Always launch it from that Home Screen icon from now on.
+
+A web app added to the Home Screen this way runs outside Safari's normal tab rules and gets its
+own storage that only clears if *the app itself* goes unused for a long stretch — not the
+7-day-since-any-Safari-tab timer that a bookmark or shared link is subject to.
 
 ## What it does
 
@@ -87,15 +111,33 @@ powershell -ExecutionPolicy Bypass -File build-app.ps1
 | `make-sprites.ps1` | cuts the 195 unique droid+rarity tiles into `sprites.js` |
 | `sheet.ps1` / `sprite-check.html` | contact sheets for eyeballing the tiles |
 | `validate.ps1` | the 360-cell banner cross-check |
-| `build-app.ps1` | inlines `cycle*.json` + `sprites.js` into `..\index.html`, and writes `artifact.html` |
+| `build-app.ps1` | inlines `cycle*.json` + `sprites.js` into `..\index.html`, `build\artifact.html`, and `..\..\docs\index.html` |
+| `make-icons.ps1` | (re)generates the `docs\icon-*.png` Home Screen icons — run by hand, not part of the normal build |
 
-`build-app.ps1` emits two files from one template: `..\index.html` (a complete standalone page)
-and `build\artifact.html` (the same page minus the `<!doctype>/<html>/<head>/<body>` wrapper,
-which the Artifact host supplies itself). Republish `artifact.html` to update the shared link.
+`build-app.ps1` emits three files from one template:
 
-Both outputs are pure ASCII — every dash, minus and middle dot is written as an HTML entity,
-CSS escape or JS `\u` escape. The artifact copy has no `<meta charset>` of its own, so anything
-non-ASCII would be at the mercy of the host's encoding guess.
+- `..\index.html` — the complete standalone page, no sibling files needed.
+- `build\artifact.html` — the same page minus the `<!doctype>/<html>/<head>/<body>` wrapper,
+  which the Artifact host supplies itself. Republish this to update the shared Artifact link.
+- `..\..\docs\index.html` (repo root `docs\`) — the GitHub Pages copy, plus `docs\manifest.json`.
+  This is the only variant with the `<link rel="manifest">` / Apple `apple-mobile-web-app-*`
+  tags that make "Add to Home Screen" install as a real standalone app instead of a bookmark
+  (see the iOS section above for why that matters). It references `manifest.json` and the
+  `icon-*.png` files as sibling paths rather than inlining them, since GitHub Pages is a proper
+  multi-file static site, not a copy-this-one-file distribution like the other two.
+
+The plain `index.html` and `artifact.html` outputs are pure ASCII — every dash, minus and middle
+dot is written as an HTML entity, CSS escape or JS `\u` escape. The artifact copy has no
+`<meta charset>` of its own, so anything non-ASCII would be at the mercy of the host's encoding
+guess. `docs\index.html` keeps the same ASCII discipline for consistency, even though it has its
+own `<meta charset>` and doesn't strictly need it.
+
+### GitHub Pages setup (one-time, in the repo's Settings)
+
+`docs\` is checked in, but GitHub Pages still has to be pointed at it once:
+**Settings → Pages → Source: Deploy from a branch → Branch: `master`, folder: `/docs` → Save.**
+After that, every push that touches `docs\` updates the live Pages site automatically — no
+separate deploy step.
 
 `cycle1.json` … `cycle4.json` are the source of truth for the chart data. Edit those and re-run
 `validate.ps1`, then `build-app.ps1`, if the game updates.

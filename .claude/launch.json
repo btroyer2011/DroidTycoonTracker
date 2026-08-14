@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8777", "--directory", "RebirthTracker"],
       "port": 8777
+    },
+    {
+      "name": "rebirth-tracker-pages",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8778", "--directory", "docs"],
+      "port": 8778
     }
   ]
 }
