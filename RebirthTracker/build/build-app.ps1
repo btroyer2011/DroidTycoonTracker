@@ -77,8 +77,12 @@ if ($html -notmatch '<!--__MOVED_BANNER__-->') { throw "template is missing the 
 $PAGES_URL = "https://btroyer2011.github.io/DroidTycoonTracker/"
 $MOVED_BANNER = @"
 <div class="movedBanner">
-  <span>This page has moved.</span>
-  <a href="$PAGES_URL" target="_blank" rel="noopener">Open the new version &rarr;</a>
+  <div class="movedBannerRow">
+    <span>This page has moved.</span>
+    <a href="$PAGES_URL" target="_blank" rel="noopener">Open the new version &rarr;</a>
+  </div>
+  <p class="movedBannerSub">Scroll down to <b>Backup &amp; restore</b> and export your progress
+    first, so you can import it at the new site.</p>
 </div>
 "@
 

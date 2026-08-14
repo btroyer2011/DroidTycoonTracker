@@ -30,12 +30,15 @@ body,:root[data-theme="light"] body{
 
 /* ---- moved notice (Artifact build only - see build-app.ps1) ---- */
 .movedBanner{
-  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
   background:#1a1406;border-bottom:2px solid var(--amber);
   color:var(--amber);font-size:12px;font-weight:700;text-align:center;
   padding:10px 14px;
 }
+.movedBannerRow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px}
 .movedBanner a{color:var(--amber);text-decoration:underline;font-weight:800;white-space:nowrap}
+.movedBannerSub{margin:0;max-width:520px;font-size:11px;font-weight:500;color:#d9b466}
+.movedBannerSub b{font-weight:800;color:var(--amber)}
 
 /* ---- header ---- */
 header{
@@ -443,8 +446,12 @@ td:first-child,th:first-child{text-align:left;padding-left:7px;font-weight:700}
 footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-top:22px}
 </style>
 <div class="movedBanner">
-  <span>This page has moved.</span>
-  <a href="https://btroyer2011.github.io/DroidTycoonTracker/" target="_blank" rel="noopener">Open the new version &rarr;</a>
+  <div class="movedBannerRow">
+    <span>This page has moved.</span>
+    <a href="https://btroyer2011.github.io/DroidTycoonTracker/" target="_blank" rel="noopener">Open the new version &rarr;</a>
+  </div>
+  <p class="movedBannerSub">Scroll down to <b>Backup &amp; restore</b> and export your progress
+    first, so you can import it at the new site.</p>
 </div>
 <div class="wrap">
   <header>
