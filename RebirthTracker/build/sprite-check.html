@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>sprite check</title>
+<style>
+  body{background:#0a0a0c;color:#eee;font:12px system-ui;margin:0;padding:12px}
+  h1{font-size:14px;margin:0 0 10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:8px}
+  .t{background:#000;border:2px solid #333;border-radius:6px;overflow:hidden}
+  .t img{width:100%;display:block}
+  .t span{display:block;padding:3px 4px;font-size:11px;line-height:1.2;color:#9fe}
+</style></head>
+<body>
+<h1 id="h">loading…</h1>
+<div class="grid" id="g"></div>
+<script src="sprites.js?v=5"></script>
+<script>
+  const keys = Object.keys(window.SPRITES).sort();
+  document.getElementById('h').textContent = keys.length + ' sprite tiles';
+  document.getElementById('g').innerHTML = keys.map(k =>
+    `<div class="t"><img src="${window.SPRITES[k]}"><span>${k.replace('|','<br>')}</span></div>`
+  ).join('');
+</script>
+</body></html>

@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<title>Super Rebirth Tracker &mdash; Droid Tycoon</title>
+<style>
+:root{
+  --bg:#07070a; --panel:#101018; --panel2:#16161f; --line:#26263a;
+  --ink:#eef0f5; --dim:#8b90a3;
+  --green:#3dff9a; --red:#ff3b47; --amber:#ffb020; --cyan:#45d7ff;
+  --sell:#ffc233; --later:#ff4d4d; --keep:#3dff9a;
+  --r-BASE:#c2cad6; --r-GOLD:#ffc233; --r-DIAMOND:#45d7ff;
+  --r-BESKAR:#dfe5ec; --r-GALACTIC:#e05cff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+
+/* This design commits to a single dark world on purpose: the rarity hues (gold, diamond,
+   rainbow, beskar, galactic) carry meaning straight from the game art and stop reading
+   correctly on a light ground. Pin it in both toggle positions rather than inverting. */
+:root,:root[data-theme="dark"],:root[data-theme="light"]{color-scheme:dark;background:var(--bg)}
+body,:root[data-theme="light"] body{
+  background:var(--bg); color:var(--ink);
+  font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+  -webkit-text-size-adjust:100%;
+  padding:0 0 40px;
+}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
+.wrap{max-width:640px;margin:0 auto;padding:0 12px}
+
+/* ---- header ---- */
+header{
+  padding:16px 0 10px; text-align:center;
+  border-bottom:2px solid var(--line); margin-bottom:14px;
+}
+header h1{
+  margin:0; font-size:19px; letter-spacing:.06em; font-weight:800;
+  color:var(--green); text-transform:uppercase;
+}
+header .sub{margin-top:3px;font-size:11px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
+header .lede{
+  margin:9px auto 0;max-width:44ch;font-size:12px;line-height:1.5;color:var(--dim);
+  text-wrap:balance;
+}
+
+/* ---- cycle pills ---- */
+.cycles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.cyc{
+  appearance:none;border:2px solid var(--line);background:var(--panel);color:var(--dim);
+  border-radius:10px;padding:9px 4px;font:700 12px/1.1 inherit;letter-spacing:.05em;
+  cursor:pointer;text-align:center;
+}
+.cyc b{display:block;font-size:17px;margin-top:2px;color:inherit}
+.cyc[aria-pressed="true"]{border-color:var(--green);color:var(--green);background:#0d1a14}
+
+/* ---- level stepper ---- */
+.stepper{
+  background:var(--panel);border:2px solid var(--line);border-radius:14px;
+  padding:12px;display:grid;grid-template-columns:56px 1fr 56px;gap:10px;align-items:center;
+  margin-bottom:8px;
+}
+.stepper.end{border-color:#4a3a12}
+.step{
+  appearance:none;border:2px solid var(--line);background:var(--panel2);color:var(--ink);
+  border-radius:12px;height:56px;font:800 26px/1 inherit;cursor:pointer;
+}
+.step:disabled{opacity:.3;cursor:default}
+.step:not(:disabled):active{background:#222232}
+.lvlbox{text-align:center}
+.lvlbox .k{font-size:10px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
+.lvlbox .n{font-size:44px;font-weight:800;line-height:1;color:var(--green);font-style:italic}
+.lvlbox .n.late{color:var(--red)}
+.lvlbox .cost{font-size:17px;font-weight:700;margin-top:2px}
+.lvlbox .of{font-size:11px;color:var(--dim);margin-top:2px}
+.bar{height:4px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.bar i{display:block;height:100%;background:var(--green);transition:width .18s}
+.bar i.late{background:var(--red)}
+/* pinned above everything (including the search dock) so it's reachable from anywhere on
+   the page; solid background covers content scrolling underneath */
+.resetrow{
+  position:sticky;top:0;z-index:25;
+  display:flex;justify-content:center;align-items:center;
+  background:var(--bg);padding:9px 0;margin-bottom:14px;
+  box-shadow:0 8px 14px -10px #000;
+}
+.reset{
+  appearance:none;border:2px solid var(--line);background:transparent;color:var(--dim);
+  border-radius:10px;padding:8px 16px;font:700 11px/1 inherit;letter-spacing:.14em;
+  text-transform:uppercase;cursor:pointer;
+}
+/* magnifying-glass toggle: sits at the right of the reset row so the reset button stays
+   centred. Shown only on narrow screens; desktop keeps the full search bar. */
+.searchToggle{
+  display:none;position:absolute;right:0;top:50%;transform:translateY(-50%);
+  appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
+  border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
+  align-items:center;justify-content:center;
+}
+.searchToggle:active{background:var(--panel2)}
+
+@media (max-width:600px){
+  /* collapsed by default on mobile: search area hidden, just the glass in the reset row */
+  .srHead,.searchDock,.srNote{display:none}
+  .searchToggle{display:flex}
+  /* opened: reveal the search area, hide the glass (the input has its own clear button) */
+  .wrap.search-open .srHead{display:flex}
+  .wrap.search-open .searchDock{display:block}
+  .wrap.search-open .srNote{display:block}
+  .wrap.search-open .searchToggle{display:none}
+}
+
+/* ---- cycle picker (shown on reset) ---- */
+.modal{
+  position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;padding:12px;
+}
+.modal[hidden]{display:none}
+.sheet{
+  background:var(--panel);border:2px solid var(--line);border-radius:16px;
+  width:100%;max-width:600px;max-height:94vh;overflow-y:auto;
+  padding:16px 12px calc(14px + env(safe-area-inset-bottom,0px));
+}
+.sheet h3{margin:0 0 4px;font-size:15px;font-weight:800;text-align:center}
+.sheet .pkSub{
+  margin:0 0 14px;font-size:12px;color:var(--dim);text-align:center;line-height:1.45;
+}
+.pk{
+  display:block;width:100%;text-align:left;cursor:pointer;margin-bottom:9px;
+  background:var(--panel2);border:2px solid var(--line);border-radius:13px;
+  padding:9px;font:inherit;color:inherit;
+}
+.pk:active{background:#20202e}
+.pk[aria-pressed="true"]{border-color:var(--green)}
+.pkHead{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+  font-weight:800;margin-bottom:7px;display:flex;justify-content:space-between;
+}
+.pk[aria-pressed="true"] .pkHead{color:var(--green)}
+.pkHead .cur{letter-spacing:.08em}
+.pkTiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pkT{background:#000;border:2px solid var(--line);border-radius:9px;overflow:hidden}
+.pkT img{width:100%;display:block;aspect-ratio:212/162;object-fit:cover}
+.pkM{padding:3px 4px 5px;background:var(--panel)}
+.pkM .rar{font-size:9px;font-weight:800;letter-spacing:.07em}
+.pkM .nm{font-size:11px;font-weight:700;line-height:1.15;word-break:break-word}
+/* sticky so the way out stays on screen however tall the sheet gets */
+.pkCancel{
+  display:block;width:100%;appearance:none;cursor:pointer;
+  position:sticky;bottom:0;margin-top:6px;
+  background:var(--panel);border:2px solid var(--line);border-radius:11px;
+  color:var(--dim);padding:11px;font:700 11px/1 inherit;letter-spacing:.16em;
+  text-transform:uppercase;box-shadow:0 -10px 12px -6px var(--panel);
+}
+
+/* ---- rarity picker (press-and-hold, or right-click, a chart tile) ---- */
+.rpSheet{max-width:380px}
+.rpHead{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.rpArt{width:64px;height:64px;border-radius:10px;overflow:hidden;background:#000;flex:none}
+.rpArt img{width:100%;height:100%;display:block;object-fit:cover}
+.rpHead h3{margin:0;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.rpSub{margin:3px 0 0;font-size:11px;color:var(--dim);line-height:1.4}
+.rpGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.rpChip{
+  appearance:none;cursor:pointer;background:var(--panel2);
+  border:2px solid var(--line);border-radius:10px;padding:10px 4px;
+  font:800 11px/1.1 inherit;letter-spacing:.04em;text-align:center;color:inherit;
+}
+.rpChip[aria-pressed="true"]{border-color:var(--green);background:#0d1a14;box-shadow:0 0 0 1px var(--green) inset}
+.rpChip[aria-pressed="true"]::after{content:" \2713";color:var(--green)}
+.rpNone{
+  display:block;width:100%;appearance:none;cursor:pointer;
+  background:transparent;border:2px dashed var(--line);border-radius:10px;
+  color:var(--dim);padding:9px;font:700 11px/1 inherit;letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:8px;
+}
+.rpNone[aria-pressed="true"]{border-color:var(--sell);color:var(--sell)}
+
+/* ---- section headings ---- */
+h2{
+  margin:0 0 8px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dim);font-weight:700;display:flex;align-items:baseline;gap:8px;
+}
+h2 em{font-style:normal;color:var(--ink);letter-spacing:.06em}
+section{margin-bottom:20px}
+
+/* ---- droid tiles ---- */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{
+  position:relative;
+  background:#000;border:2px solid var(--line);border-radius:12px;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.tile img{width:100%;display:block;aspect-ratio:212/162;object-fit:cover;background:#000}
+.tile .meta{padding:5px 6px 7px;background:var(--panel)}
+.tile .rar{font-size:10px;font-weight:800;letter-spacing:.09em}
+.tile .nm{font-size:12px;font-weight:700;line-height:1.15;margin-top:1px;word-break:break-word}
+.tile.ghost{opacity:.62}
+
+/* NEW = first rebirth this cycle that needs the droid (a fresh pull);
+   OWNED = it appeared earlier, so you already have it and this rebirth upgrades it. */
+.badge{
+  position:absolute;top:5px;left:5px;z-index:2;
+  font-size:9px;font-weight:800;letter-spacing:.03em;line-height:1;
+  padding:3px 5px;border-radius:6px;
+}
+.badge.new{background:var(--cyan);color:#052734}
+.badge.seen{background:rgba(4,4,8,.8);color:#cfd3e0;border:1px solid var(--line)}
+.noimg{
+  width:100%;aspect-ratio:212/162;display:grid;place-items:center;
+  color:var(--dim);font-size:10px;letter-spacing:.1em;background:#0c0c12;
+}
+
+/* rarity colours */
+.r-BASE{color:var(--r-BASE)} .r-GOLD{color:var(--r-GOLD)}
+.r-DIAMOND{color:var(--r-DIAMOND)} .r-BESKAR{color:var(--r-BESKAR)}
+.r-GALACTIC{color:var(--r-GALACTIC)}
+.r-RAINBOW{
+  background:linear-gradient(90deg,#ff4d4d,#ffc233,#3dff9a,#45d7ff,#c46bff);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.br-BASE{border-color:#3a4150} .br-GOLD{border-color:#7a5a12}
+.br-DIAMOND{border-color:#1a6c8c} .br-BESKAR{border-color:#6b7480}
+.br-GALACTIC{border-color:#7d2a99} .br-RAINBOW{border-color:#6a4a8a}
+
+/* ---- sell / keep ---- */
+.verdicts{display:flex;flex-direction:column;gap:7px}
+.v{
+  display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:center;
+  background:var(--panel);border:2px solid var(--line);border-left-width:5px;
+  border-radius:11px;padding:7px 10px 7px 7px;
+}
+.v img{width:54px;border-radius:7px;display:block;aspect-ratio:212/162;object-fit:cover;background:#000}
+.v .who{min-width:0}
+.v .who .nm{font-size:13px;font-weight:700;line-height:1.2}
+.v .who .rr{font-size:10px;font-weight:800;letter-spacing:.09em}
+.v .who .note{font-size:11px;color:var(--dim);margin-top:2px;line-height:1.25}
+.v .tag{
+  font-size:11px;font-weight:800;letter-spacing:.1em;padding:5px 9px;
+  border-radius:7px;white-space:nowrap;
+}
+.v.sell{border-left-color:var(--sell)}
+.v.sell .tag{background:rgba(255,194,51,.14);color:var(--sell)}
+.v.later{border-left-color:var(--later)}
+.v.later .tag{background:rgba(255,77,77,.16);color:var(--later)}
+.v.keep{border-left-color:var(--keep)}
+.v.keep .tag{background:rgba(61,255,154,.13);color:var(--keep)}
+
+/* ---- done state ---- */
+.done{
+  background:var(--panel);border:2px dashed #4a3a12;border-radius:12px;
+  padding:18px;text-align:center;color:var(--amber);font-weight:700;font-size:13px;
+}
+.done span{display:block;color:var(--dim);font-weight:400;font-size:12px;margin-top:5px}
+
+/* ---- collapsibles ---- */
+details{background:var(--panel);border:2px solid var(--line);border-radius:12px;margin-bottom:12px}
+summary{
+  padding:12px 14px;cursor:pointer;font-size:11px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--dim);font-weight:700;list-style:none;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"\25BE";float:right;transition:transform .15s}
+details[open] summary::after{transform:rotate(180deg)}
+.inner{padding:0 10px 12px}
+.inner>section:last-child{margin-bottom:0}
+
+/* ---- full chart ---- */
+.chart{display:flex;flex-direction:column;gap:4px}
+.row{
+  display:grid;grid-template-columns:52px 1fr 1fr 1fr;gap:4px;align-items:stretch;
+  border:2px solid transparent;border-radius:9px;padding:3px;
+}
+.row.now{border-color:var(--green);background:#0c1a13}
+/* keep the current row clear of the pinned search bar when scrolled into view */
+.row{scroll-margin-top:116px}
+.row.head{padding-top:8px}
+.row .lv{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  background:var(--panel2);border-radius:7px;padding:4px 2px;
+}
+.row .lv b{font-size:16px;font-style:italic;color:var(--green);line-height:1}
+.row.late .lv b{color:var(--red)}
+.row .lv i{font-style:normal;font-size:9px;color:var(--dim);margin-top:2px}
+.row .lv .cry{font-size:9px;font-weight:700;color:var(--cyan);margin-top:3px;line-height:1;white-space:nowrap}
+/* +/- stepper shown only on the current row, so you can change level from the chart itself */
+.row .lv .chartstep{display:flex;gap:3px;margin-top:6px}
+.row .lv .cst{
+  appearance:none;width:21px;height:21px;padding:0;
+  border:1px solid var(--green);background:transparent;color:var(--green);
+  border-radius:5px;font:800 13px/1 inherit;cursor:pointer;
+}
+.row .lv .cst:disabled{opacity:.3;cursor:default}
+.row .lv .cst:not(:disabled):active{background:rgba(61,255,154,.16)}
+.cell{
+  position:relative;background:#000;border:1px solid var(--line);border-radius:7px;
+  overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
+  transition:transform .12s ease;
+}
+.cell img{-webkit-user-drag:none}
+/* press-and-hold feedback: the tile eases down over the same 500ms as the hold timer, so the
+   shrink completing lines up with the rarity picker opening */
+.cell.pressing{transition:transform 500ms ease;transform:scale(.94)}
+.cthumb{position:relative;line-height:0}
+/* owned = you already have this droid: dim the tile and stamp a check. Tapping any of a
+   droid's tiles toggles them all, since ownership is per droid. */
+.cell.owned img{filter:grayscale(1) brightness(.5)}
+.cell.owned .noimg{filter:grayscale(1) brightness(.7)}
+.cell.owned .cm{opacity:.5}
+.cell.owned .cfut{opacity:.35}
+.cell.owned .cn,.cell.owned .cr{color:var(--dim) !important;-webkit-text-fill-color:var(--dim)}
+.cell.owned{border-color:#2f5a44}
+.cown{
+  position:absolute;top:3px;right:3px;z-index:4;width:16px;height:16px;border-radius:50%;
+  background:var(--green);color:#04120b;font-size:11px;font-weight:900;line-height:16px;
+  text-align:center;box-shadow:0 0 0 2px #000;pointer-events:none;
+}
+.cell img{width:100%;display:block;aspect-ratio:212/162;object-fit:cover}
+.cdot{position:absolute;top:3px;left:3px;width:7px;height:7px;border-radius:50%;
+      background:var(--cyan);box-shadow:0 0 0 2px #000;z-index:2}
+/* future needs: the later rebirths (and their rarity, by colour) that also want this droid,
+   overlaid at the foot of the sprite over a gradient fade so the art stays readable */
+.cfut{
+  position:absolute;left:0;right:0;bottom:0;
+  display:flex;flex-wrap:wrap;align-items:center;gap:1px 5px;
+  padding:9px 4px 3px;line-height:1;pointer-events:none;
+  background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.5) 45%,rgba(0,0,0,.85));
+}
+.cfMark{font-style:normal;font-size:8px;color:var(--dim);margin-right:-2px}
+.cfx{font-size:9px;font-weight:800;text-shadow:0 1px 2px #000,0 0 3px #000}
+/* Make the three top rarities read as clearly different at this tiny size:
+   RAINBOW = multicolour gradient (ends in blue, away from magenta),
+   BESKAR = bright silver-white, GALACTIC = the lone magenta. */
+.cfx.r-BESKAR{color:#eef3fa;-webkit-text-fill-color:#eef3fa}
+.cfx.r-GALACTIC{color:#f24dff;-webkit-text-fill-color:#f24dff}
+.cfx.r-RAINBOW{
+  background:linear-gradient(92deg,#ff6b6b,#ffcf4d,#5dff9e,#3fd0ff,#4d90ff);
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  text-shadow:none;filter:drop-shadow(0 1px 1px #000) drop-shadow(0 0 1px #000);
+}
+.cell .cm{padding:2px 3px 3px;background:var(--panel)}
+.cell .cr{font-size:8px;font-weight:800;letter-spacing:.06em;line-height:1.1}
+.cell .cn{font-size:9px;font-weight:700;line-height:1.1;word-break:break-word}
+.cell .flag{
+  position:relative;display:block;height:0;
+}
+.cell.f-Y{border-color:var(--sell)} .cell.f-R{border-color:var(--later)}
+
+/* ---- chips table ---- */
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{border:1px solid var(--line);padding:5px 3px;text-align:center}
+th{color:var(--dim);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+td:first-child,th:first-child{text-align:left;padding-left:7px;font-weight:700}
+.key{font-size:11px;color:var(--dim);line-height:1.9;margin:0 0 8px}
+.key .sw{margin-left:10px}
+.legend{font-size:12px;color:var(--dim);line-height:1.5;margin-top:12px}
+.legend b{color:var(--ink)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+
+/* ---- droid search ---- */
+.srHead{margin-bottom:8px}
+/* input + results ride together in a sticky dock so both stay pinned as the page scrolls.
+   Solid page-coloured background covers content scrolling behind, including the row gaps. */
+.searchDock{
+  /* 53px = the sticky reset bar's rendered height, so this settles right below it
+     rather than sticking at 0 and overlapping */
+  position:sticky;top:53px;z-index:20;
+  background:var(--bg);padding-bottom:8px;margin-bottom:12px;
+  box-shadow:0 10px 12px -10px #000;
+}
+.search{
+  width:100%;appearance:none;background:var(--panel2);color:var(--ink);
+  border:2px solid var(--line);border-radius:11px;padding:11px 12px;
+  /* Must be valid longhands: `font: 16px/1 inherit` is dropped because `inherit` isn't a legal
+     family inside the font shorthand, which left the input at the 13px UA default and made iOS
+     auto-zoom on focus. 16px is the threshold below which iOS Safari zooms. */
+  font-family:inherit;font-size:16px;line-height:1.2;
+}
+.search::placeholder{color:var(--dim)}
+.search:focus-visible{border-color:var(--cyan);outline:none}
+.srNote{font-size:11px;color:var(--dim);line-height:1.5;margin:0 2px 20px}
+/* cap the docked results so a long list scrolls inside the dock instead of filling the screen */
+.searchResults{display:flex;flex-direction:column;gap:7px;max-height:50vh;overflow-y:auto}
+.searchResults:not(:empty){margin-top:8px}
+.searchHint{font-size:12px;color:var(--dim);line-height:1.5;margin:2px}
+.sr{
+  display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;
+  background:var(--panel);border:2px solid var(--line);border-radius:11px;padding:7px;
+}
+.sr img,.sr .noimg{
+  width:56px;border-radius:7px;display:block;aspect-ratio:212/162;object-fit:cover;background:#000;
+}
+.srBody{min-width:0}
+.srName{font-size:13px;font-weight:700;line-height:1.2;margin-bottom:5px}
+.srChips{display:flex;flex-wrap:wrap;gap:4px}
+.srChip{
+  font-size:10px;font-weight:700;background:var(--panel2);border:1px solid var(--line);
+  border-radius:6px;padding:3px 6px;color:var(--dim);white-space:nowrap;
+}
+.srChip.first{border-color:var(--cyan)}
+.srChip b{font-weight:800;letter-spacing:.03em;margin-left:3px}
+
+footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Super Rebirth Tracker</h1>
+    <div class="sub">Droid Tycoon</div>
+    <p class="lede">Pick your cycle, track the rebirth you're on, and see which droids to
+      hold and which to sell. Your progress is saved on this device only.</p>
+  </header>
+
+  <div class="cycles" id="cycles"></div>
+
+  <div class="stepper" id="stepper">
+    <button class="step" id="down" aria-label="Previous rebirth">&minus;</button>
+    <div class="lvlbox">
+      <div class="k">Rebirth</div>
+      <div class="n" id="lvlnum">1</div>
+      <div class="cost" id="cost">10K</div>
+      <div class="of" id="of">1 of 30</div>
+    </div>
+    <button class="step" id="up" aria-label="Next rebirth">+</button>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="resetrow">
+    <button class="reset" id="reset">Reset to Rebirth 1</button>
+    <button class="searchToggle" id="searchToggle" aria-label="Search a droid" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="15.4" y1="15.4" x2="21" y2="21"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- The search dock is a direct child of .wrap (not a short section), so as the sticky
+       containing block, .wrap spans the whole page and the dock stays pinned on scroll.
+       Input + results ride together in the dock; its solid background keeps page content
+       from showing through the gaps between result rows while pinned. -->
+  <h2 class="srHead">Find a droid <em>in this cycle</em></h2>
+  <div class="searchDock">
+    <input id="search" class="search" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Search a droid name..." aria-label="Search a droid name in this cycle">
+    <div id="searchResults" class="searchResults"></div>
+  </div>
+  <p class="srNote"><b style="color:var(--cyan)">&#10022; NEW</b> marks the first rebirth that
+    needs a droid &mdash; a fresh pull. Later entries (<b>&#8634;</b>) upgrade the one you already own.</p>
+
+  <details id="needbox">
+    <summary>This rebirth <em id="needSum">Rebirth 1</em></summary>
+    <div class="inner">
+      <section>
+        <h2>You need now <em id="curlv">Rebirth 1</em></h2>
+        <div class="tiles" id="current"></div>
+      </section>
+
+      <section>
+        <h2>Sell or keep <em>after this rebirth</em></h2>
+        <div class="verdicts" id="verdicts"></div>
+      </section>
+
+      <section>
+        <h2>Up next <em id="nextlv">Rebirth 2</em></h2>
+        <div id="next"></div>
+      </section>
+    </div>
+  </details>
+
+  <details id="chartbox">
+    <summary>Full chart &mdash; all 30 rebirths</summary>
+    <div class="inner">
+      <p class="key">Cell outline:
+        <span class="sw" style="background:var(--sell)"></span>sell after this rebirth
+        <span class="sw" style="background:var(--later)"></span>sell, needed again in 21&ndash;30
+        <span class="sw" style="background:#3a4150"></span>keep
+      </p>
+      <p class="key" style="margin-top:2px"><b style="color:var(--cyan)">&#9670;</b> crystals earned
+        at that rebirth &mdash; the reward starts at Rebirth&nbsp;12.</p>
+      <p class="key" style="margin-top:2px"><b>&#8634;</b> small numbers on a tile are later
+        rebirths that also need it, coloured by the rarity required then.</p>
+      <p class="key" style="margin-top:2px"><b style="color:var(--green)">&#10003;</b> tap a droid
+        tile to mark it owned at that rarity: that tile and every lower-rarity tile of the same
+        droid dim. Tap a higher rarity to include it too; tap a dimmed tile to give it back.</p>
+      <p class="key" style="margin-top:2px">Press and hold a tile (or right-click on desktop) to
+        pick the exact rarity you own from a list &mdash; handy when it isn't the tile on screen.</p>
+      <div class="chart" id="chart"></div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Upgrade chip costs &amp; legend</summary>
+    <div class="inner">
+      <table id="chips"></table>
+      <div class="legend">
+        <p><span class="sw" style="background:var(--sell)"></span><b>SELL</b> &mdash; not required again anywhere in this cycle.</p>
+        <p><span class="sw" style="background:var(--later)"></span><b>SELL, but needed again</b> &mdash; safe to sell now, but the chart asks for it again in the Rebirth 21&ndash;30 block.</p>
+        <p><span class="sw" style="background:var(--keep)"></span><b>KEEP</b> &mdash; required again before Rebirth 21, so hold on to it.</p>
+        <p><b style="color:var(--cyan)">&#10022; NEW</b> &mdash; the first rebirth this cycle that needs a droid: a fresh pull or build. On the chart it shows as a cyan dot.</p>
+        <p><b style="color:#cfd3e0">&#8634; R<i>n</i></b> &mdash; you were already asked for this droid at Rebirth <i>n</i>, so you should own it &mdash; this rebirth just upgrades its rarity.</p>
+        <p>Verdicts are worked out from the chart itself, not copied from the poster banners, so they stay correct at whatever rebirth you are on.</p>
+      </div>
+    </div>
+  </details>
+
+  <footer id="foot"></footer>
+</div>
+
+<div class="modal" id="picker" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
+    <h3 id="pkTitle">Which cycle are you on?</h3>
+    <p class="pkSub">After a super rebirth, match what the game is asking you for at Rebirth&nbsp;1
+      against the four sets below. Each set is unique, so the trio tells you the cycle.</p>
+    <div id="pkList"></div>
+    <button class="pkCancel" id="pkCancel">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" id="rarityPicker" hidden>
+  <div class="sheet rpSheet" role="dialog" aria-modal="true" aria-labelledby="rpTitle">
+    <div class="rpHead">
+      <div class="rpArt" id="rpArt"></div>
+      <div>
+        <h3 id="rpTitle">Droid</h3>
+        <p class="rpSub">Which rarity do you currently own?</p>
+      </div>
+    </div>
+    <div class="rpGrid" id="rpGrid"></div>
+    <button class="rpNone" id="rpNone">I don't own this yet</button>
+    <button class="pkCancel" id="rpCancel">Close</button>
+  </div>
+</div>
+
+<script>
+//__SPRITES__
+//__DATA__
+
+(function(){
+  "use strict";
+  var KEY = "droidtycoon.rebirth.v1";
+  var S = window.SPRITES || {};
+
+  var state = (function(){
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY));
+      if (s && s.levels && s.cycle) {
+        for (var c = 1; c <= 4; c++) s.levels[c] = clamp(s.levels[c] || 1);
+        s.cycle = Math.min(4, Math.max(1, s.cycle));
+        if (!s.owned || typeof s.owned !== "object") s.owned = {};
+        // owned used to be a boolean (1 = whole droid owned); it is now the rank of the
+        // highest owned rarity. Migrate any old marks to GALACTIC so they stay fully dimmed.
+        if (s.ownedV !== 2) {
+          for (var cy in s.owned) for (var nm in s.owned[cy]) s.owned[cy][nm] = 5;
+          s.ownedV = 2;
+        }
+        return s;
+      }
+    } catch (e) {}
+    return { cycle: 1, levels: { 1:1, 2:1, 3:1, 4:1 }, owned: {}, ownedV: 2 };
+  })();
+
+  // rarity low -> high; a droid upgrades up this ladder, so owning it at one rank means you
+  // already have every rank below it.
+  var RARITY_ORDER = ["BASE", "GOLD", "DIAMOND", "RAINBOW", "BESKAR", "GALACTIC"];
+  function rarityRank(x){ return RARITY_ORDER.indexOf(x); }
+
+  function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(30, Math.max(1, n)); }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function lvl(){ return state.levels[state.cycle]; }
+  function rows(){ return CYCLES[state.cycle]; }
+
+  // Owned droids are tracked per cycle. The stored value is the rank of the HIGHEST rarity you
+  // own for that droid; you implicitly own every rarity at or below it, so those tiles dim.
+  function ownedSet(){ return state.owned[state.cycle] || (state.owned[state.cycle] = {}); }
+  function ownedTop(name){ var s = ownedSet(); return (name in s) ? s[name] : -1; }
+  function isOwned(name, rarity){ return rarityRank(rarity) <= ownedTop(name); }
+  // Tapping a tile toggles that exact rarity: tap an un-dimmed tile to own up to it (it and
+  // everything below dim); tap a dimmed tile to give it up (it and everything above brighten).
+  function toggleOwnedRarity(name, rarity){
+    var s = ownedSet(), r = rarityRank(rarity), cur = ownedTop(name);
+    if (r <= cur) { if (r - 1 < 0) delete s[name]; else s[name] = r - 1; }
+    else s[name] = r;
+    save();
+    renderChart();
+  }
+  // Set directly from the press-and-hold rarity picker, rather than inferring it from which
+  // tile was tapped - lets you jump straight to a rarity that isn't on screen.
+  function setOwnedRarity(name, rarity){
+    ownedSet()[name] = rarityRank(rarity);
+    save();
+    renderChart();
+  }
+  function clearOwned(name){
+    delete ownedSet()[name];
+    save();
+    renderChart();
+  }
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  // next rebirth above `level` in this cycle that asks for `name` again
+  function nextUse(level, name){
+    var r = rows();
+    for (var i = level; i < 30; i++) {
+      for (var j = 0; j < 3; j++) if (r[i][j].n === name) return { level: i + 1, rarity: r[i][j].r };
+    }
+    return null;
+  }
+
+  // earliest rebirth in this cycle that needs `name` (its acquisition point)
+  function firstSeen(name){
+    var r = rows();
+    for (var i = 0; i < 30; i++)
+      for (var j = 0; j < 3; j++) if (r[i][j].n === name) return i + 1;
+    return null;
+  }
+  // NEW when `level` is the droid's first appearance; otherwise you already own it.
+  function isNew(level, name){ return firstSeen(name) === level; }
+
+  // every rebirth in this cycle that needs `name`, with the rarity asked for each time
+  function appearances(name){
+    var r = rows(), out = [];
+    for (var i = 0; i < 30; i++)
+      for (var j = 0; j < 3; j++) if (r[i][j].n === name) out.push({ level: i + 1, rarity: r[i][j].r });
+    return out;
+  }
+
+  function ownBadge(level, name){
+    var first = firstSeen(name);
+    if (first === level) return '<span class="badge new">\u2726 NEW</span>';
+    return '<span class="badge seen" title="First needed at Rebirth ' + first +
+           '">\u21ba R' + first + '</span>';
+  }
+
+  function verdict(level, name){
+    var nx = nextUse(level, name);
+    if (!nx) return { cls:"sell",  tag:"SELL", note:"Not required again this cycle." };
+    var at = "Rebirth " + nx.level + " \u00b7 " + nx.rarity;
+    if (level < 21 && nx.level >= 21)
+      return { cls:"later", tag:"SELL", note:"Safe to sell \u2014 but needed again at " + at + "." };
+    return { cls:"keep", tag:"KEEP", note:"Needed again at " + at + "." };
+  }
+
+  function art(d, cls){
+    var src = S[d.n + "|" + d.r];
+    return src ? '<img class="' + cls + '" src="' + src + '" alt="' + esc(d.n) + '">'
+               : '<div class="noimg">' + esc(d.r) + '</div>';
+  }
+
+  function tile(d, ghost, level){
+    return '<div class="tile br-' + d.r + (ghost ? " ghost" : "") + '">' +
+             ownBadge(level, d.n) + art(d, "") +
+             '<div class="meta"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
+             '<div class="nm">' + esc(d.n) + '</div></div></div>';
+  }
+
+  // The cycle pills are built once and only their pressed state changes, so element
+  // references stay stable across renders.
+  (function buildCycles(){
+    var h = "";
+    for (var c = 1; c <= 4; c++) {
+      h += '<button class="cyc" data-c="' + c + '" aria-pressed="false">Cycle<b>' + c + '</b></button>';
+    }
+    document.getElementById("cycles").innerHTML = h;
+  })();
+
+  function renderChart(){
+    var L = lvl(), r = rows(), h = "";
+    for (var i = 0; i < 30; i++) {
+      var n = i + 1;
+      h += '<div class="row' + (n === L ? " now" : "") + (n >= 21 ? " late" : "") + '"' +
+           (n === L ? ' id="nowrow"' : "") + '>' +
+           '<div class="lv"><b>' + n + '</b><i>' + COSTS[i] + '</i>' +
+             (CRYSTALS[n] ? '<span class="cry">\u25C6' + CRYSTALS[n] + '</span>' : '') +
+             (n === L ?
+               '<div class="chartstep">' +
+                 '<button class="cst" data-d="-1"' + (L <= 1 ? ' disabled' : '') +
+                   ' aria-label="Previous rebirth">\u2212</button>' +
+                 '<button class="cst" data-d="1"' + (L >= 30 ? ' disabled' : '') +
+                   ' aria-label="Next rebirth">+</button>' +
+               '</div>' : '') +
+           '</div>';
+      for (var j = 0; j < 3; j++) {
+        var d = r[i][j];
+        // later rebirths in this cycle that also need this droid, and at what rarity
+        var fut = appearances(d.n).filter(function(a){ return a.level > n; });
+        var futHTML = "";
+        if (fut.length) {
+          futHTML = '<div class="cfut"><i class="cfMark">\u21BB</i>' +
+            fut.map(function(a){
+              return '<b class="cfx r-' + a.rarity + '" title="Rebirth ' + a.level + ' \u00b7 ' +
+                     a.rarity + '">' + a.level + '</b>';
+            }).join("") + '</div>';
+        }
+        var own = isOwned(d.n, d.r);
+        h += '<div class="cell f-' + d.b + (own ? ' owned' : '') + '" data-nm="' + esc(d.n) +
+             '" data-r="' + d.r + '" title="' + (own ?
+               'Owned at ' + d.r + ' - tap to give up this rarity and above' :
+               'Tap: you own ' + d.n + ' at ' + d.r + ' (and below)') + '">' +
+             '<div class="cthumb">' +
+               (isNew(n, d.n) ? '<span class="cdot" title="New this cycle"></span>' : "") +
+               art(d, "") + futHTML +
+               (own ? '<span class="cown">\u2713</span>' : "") +
+             '</div>' +
+             '<div class="cm"><div class="cr r-' + d.r + '">' + d.r + '</div>' +
+             '<div class="cn r-' + d.r + '">' + esc(d.n) + '</div></div></div>';
+      }
+      h += "</div>";
+    }
+    document.getElementById("chart").innerHTML = h;
+  }
+
+  var searchInput = document.getElementById("search");
+
+  function renderSearch(){
+    var q = searchInput.value.trim().toUpperCase();
+    var box = document.getElementById("searchResults");
+    if (!q) {
+      box.innerHTML = '<p class="searchHint">Type a droid name to see every rebirth it is ' +
+        'needed at in Cycle ' + state.cycle + ', and the rarity each time.</p>';
+      return;
+    }
+    var r = rows(), added = {}, names = [];
+    for (var i = 0; i < 30; i++)
+      for (var j = 0; j < 3; j++) {
+        var nm = r[i][j].n;
+        if (nm.indexOf(q) !== -1 && !added[nm]) { added[nm] = 1; names.push(nm); }
+      }
+    names.sort();
+    if (!names.length) {
+      box.innerHTML = '<p class="searchHint">No droid matching "' + esc(q) +
+        '" is used in Cycle ' + state.cycle + '.</p>';
+      return;
+    }
+    var h = "";
+    names.forEach(function(nm){
+      var ap = appearances(nm);
+      var chips = ap.map(function(a, idx){
+        return '<span class="srChip' + (idx === 0 ? " first" : "") + '">' +
+               (idx === 0 ? "\u2726 " : "") + "R" + a.level +
+               ' <b class="r-' + a.rarity + '">' + a.rarity + "</b></span>";
+      }).join("");
+      h += '<div class="sr">' + art({ n: nm, r: ap[0].rarity }, "") +
+           '<div class="srBody"><div class="srName">' + esc(nm) + '</div>' +
+           '<div class="srChips">' + chips + '</div></div></div>';
+    });
+    box.innerHTML = h;
+  }
+
+  searchInput.addEventListener("input", renderSearch);
+
+  // ---- collapsible search (mobile) --------------------------------------------------
+  // On narrow screens the search area is hidden behind a magnifying glass in the reset row.
+  // Tapping the glass opens it; it collapses back once the box is empty AND unfocused, so a
+  // cleared box (via the input's X) stays open while you're still in it, but folds away when
+  // you tap out. On desktop the CSS keeps the bar always visible and this just no-ops.
+  var wrapEl = document.querySelector(".wrap");
+  var searchToggle = document.getElementById("searchToggle");
+  function openSearch(){
+    wrapEl.classList.add("search-open");
+    searchToggle.setAttribute("aria-expanded", "true");
+    searchInput.focus();
+  }
+  function collapseSearchIfEmpty(){
+    if (!searchInput.value.trim()) {
+      wrapEl.classList.remove("search-open");
+      searchToggle.setAttribute("aria-expanded", "false");
+    }
+  }
+  searchToggle.addEventListener("click", openSearch);
+  searchInput.addEventListener("blur", collapseSearchIfEmpty);
+
+  function render(){
+    var L = lvl(), r = rows(), i;
+
+    document.querySelectorAll(".cyc").forEach(function(b){
+      b.setAttribute("aria-pressed", String(+b.dataset.c === state.cycle));
+    });
+
+    var ln = document.getElementById("lvlnum");
+    ln.textContent = L;
+    ln.className = "n" + (L >= 21 ? " late" : "");
+    document.getElementById("cost").textContent = COSTS[L - 1];
+    document.getElementById("of").textContent = L + " of 30";
+    var bar = document.getElementById("bar");
+    bar.style.width = (L / 30 * 100) + "%";
+    bar.className = L >= 21 ? "late" : "";
+    document.getElementById("down").disabled = L <= 1;
+    document.getElementById("up").disabled = L >= 30;
+
+    var needLabel = "Rebirth " + L + " \u2014 " + COSTS[L - 1];
+    document.getElementById("curlv").textContent = needLabel;
+    document.getElementById("needSum").textContent = needLabel;
+    var cur = r[L - 1], h = "";
+    for (i = 0; i < 3; i++) h += tile(cur[i], false, L);
+    document.getElementById("current").innerHTML = h;
+
+    h = "";
+    for (i = 0; i < 3; i++) {
+      var d = cur[i], v = verdict(L, d.n);
+      h += '<div class="v ' + v.cls + '">' + art(d, "") +
+           '<div class="who"><div class="nm">' + esc(d.n) + '</div>' +
+           '<div class="rr r-' + d.r + '">' + d.r + '</div>' +
+           '<div class="note">' + v.note + '</div></div>' +
+           '<div class="tag">' + v.tag + '</div></div>';
+    }
+    document.getElementById("verdicts").innerHTML = h;
+
+    var nextEl = document.getElementById("next");
+    if (L >= 30) {
+      document.getElementById("nextlv").textContent = "";
+      nextEl.innerHTML = '<div class="done">Cycle ' + state.cycle + ' complete.' +
+        '<span>Switch cycles above, or reset to 1 to run it again.</span></div>';
+    } else {
+      document.getElementById("nextlv").textContent = "Rebirth " + (L + 1) + " \u2014 " + COSTS[L];
+      var nx = r[L];
+      h = '<div class="tiles">';
+      for (i = 0; i < 3; i++) h += tile(nx[i], true, L + 1);
+      nextEl.innerHTML = h + "</div>";
+    }
+
+    renderChart();
+    renderSearch();
+    save();
+  }
+
+  function setLevel(n){ state.levels[state.cycle] = clamp(n); render(); }
+
+  document.getElementById("up").addEventListener("click", function(){ setLevel(lvl() + 1); });
+  document.getElementById("down").addEventListener("click", function(){ setLevel(lvl() - 1); });
+
+  // the current row of the full chart carries its own +/- so you can step level without
+  // scrolling back to the top. Delegated on the container, which survives re-render.
+  document.getElementById("chart").addEventListener("click", function(e){
+    var b = e.target.closest(".cst");
+    if (b) {
+      setLevel(lvl() + (+b.dataset.d));
+      var row = document.getElementById("nowrow");
+      if (row) row.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    // a long-press just fired on this same press/release cycle: swallow the trailing click
+    // the browser still sends on release, so it doesn't also toggle the tile it fired on.
+    if (Date.now() < lpSuppressClickUntil) return;
+    // tapping a droid tile toggles ownership at that tile's rarity (that rarity and below dim)
+    var cell = e.target.closest(".cell");
+    if (cell && cell.dataset.nm) toggleOwnedRarity(cell.dataset.nm, cell.dataset.r);
+  });
+
+  // ---- press-and-hold rarity picker --------------------------------------------------
+  // A short tap toggles ownership at the tapped tile's exact rarity (above). Press-and-hold
+  // (or right-click on desktop) instead opens a picker so you can jump straight to owning any
+  // rarity for that droid - useful when the rarity you own isn't the one currently on screen.
+  var LP_MS = 500, LP_MOVE_PX = 10, LP_GUARD_MS = 400;
+  var lpTimer = null, lpCell = null, lpStartX = 0, lpStartY = 0, lpSuppressClickUntil = 0;
+
+  function lpCancel(){
+    if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+    if (lpCell) lpCell.classList.remove("pressing");
+    lpCell = null;
+  }
+
+  document.getElementById("chart").addEventListener("pointerdown", function(e){
+    if (e.button !== undefined && e.button !== 0) return; // primary button / touch / pen only
+    var cell = e.target.closest(".cell");
+    if (!cell || !cell.dataset.nm) return;
+    lpCancel();
+    lpCell = cell;
+    lpStartX = e.clientX; lpStartY = e.clientY;
+    cell.classList.add("pressing");
+    lpTimer = setTimeout(function(){
+      lpTimer = null;
+      cell.classList.remove("pressing");
+      lpSuppressClickUntil = Date.now() + LP_GUARD_MS;
+      openRarityPicker(cell.dataset.nm, true);
+    }, LP_MS);
+  });
+  document.addEventListener("pointermove", function(e){
+    if (!lpTimer || !lpCell) return;
+    if (Math.abs(e.clientX - lpStartX) > LP_MOVE_PX || Math.abs(e.clientY - lpStartY) > LP_MOVE_PX) lpCancel();
+  });
+  document.addEventListener("pointerup", lpCancel);
+  document.addEventListener("pointercancel", lpCancel);
+
+  // desktop equivalent of press-and-hold: right-click opens the same picker instead of the
+  // browser's native context menu
+  document.getElementById("chart").addEventListener("contextmenu", function(e){
+    var cell = e.target.closest(".cell");
+    if (!cell || !cell.dataset.nm) return;
+    e.preventDefault();
+    lpCancel();
+    openRarityPicker(cell.dataset.nm);
+  });
+  document.getElementById("cycles").addEventListener("click", function(e){
+    var b = e.target.closest(".cyc"); if (!b) return;
+    state.cycle = +b.dataset.c; render();
+  });
+
+  // ---- reset flow -------------------------------------------------------------------
+  // Resetting means you have just super-rebirthed, and the cycle you land on may not be the
+  // one you were just on. Every cycle's Rebirth 1 asks for a different trio of droids, so
+  // instead of guessing we show all four and let you pick the set the game is showing you.
+  var picker  = document.getElementById("picker");
+  var pkList  = document.getElementById("pkList");
+
+  (function buildPicker(){
+    var h = "";
+    for (var c = 1; c <= 4; c++) {
+      var row = CYCLES[c][0];
+      h += '<button class="pk" data-c="' + c + '" aria-pressed="false">' +
+             '<div class="pkHead"><span>Cycle ' + c + '</span>' +
+             '<span class="cur" data-cur="' + c + '"></span></div><div class="pkTiles">';
+      for (var j = 0; j < 3; j++) {
+        var d = row[j];
+        h += '<div class="pkT br-' + d.r + '">' + art(d, "") +
+             '<div class="pkM"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
+             '<div class="nm">' + esc(d.n) + '</div></div></div>';
+      }
+      h += "</div></button>";
+    }
+    pkList.innerHTML = h;
+  })();
+
+  function openPicker(){
+    pkList.querySelectorAll(".pk").forEach(function(b){
+      var isCur = +b.dataset.c === state.cycle;
+      b.setAttribute("aria-pressed", String(isCur));
+      b.querySelector(".cur").textContent = isCur ? "current" : "";
+    });
+    picker.hidden = false;
+    document.body.style.overflow = "hidden";
+    var sel = pkList.querySelector('.pk[aria-pressed="true"]') || pkList.querySelector(".pk");
+    if (sel) sel.focus();
+  }
+
+  function closePicker(){
+    picker.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("reset").addEventListener("click", openPicker);
+  document.getElementById("pkCancel").addEventListener("click", closePicker);
+
+  pkList.addEventListener("click", function(e){
+    var b = e.target.closest(".pk"); if (!b) return;
+    state.cycle = +b.dataset.c;
+    state.levels[state.cycle] = 1;      // only the chosen cycle is reset
+    closePicker();
+    render();
+    window.scrollTo(0, 0);
+  });
+
+  picker.addEventListener("click", function(e){ if (e.target === picker) closePicker(); });
+  document.addEventListener("keydown", function(e){
+    if (e.key !== "Escape") return;
+    if (!picker.hidden) closePicker();
+    if (!rarityPicker.hidden) closeRarityPicker();
+  });
+
+  // ---- rarity picker (opened by press-and-hold / right-click on a chart tile) -----------
+  var rarityPicker = document.getElementById("rarityPicker");
+  var rpGrid = document.getElementById("rpGrid");
+  var rpActiveName = null;
+  var rpJustOpenedUntil = 0;   // absorbs the trailing click the long-press gesture still sends
+
+  // `viaLongPress` is true only when a press-and-hold fired the timer - that's the one path
+  // whose release still sends a trailing click into this now-open modal (see the guard
+  // above). Right-click has no such trailing click, so it opens at full speed with no delay.
+  function openRarityPicker(name, viaLongPress){
+    rpActiveName = name;
+    var top = ownedTop(name);
+    document.getElementById("rpTitle").textContent = name;
+    var ap = appearances(name);
+    var repRarity = top >= 0 ? RARITY_ORDER[top] : (ap[0] && ap[0].rarity);
+    document.getElementById("rpArt").innerHTML = repRarity ? art({ n: name, r: repRarity }, "") : "";
+    var h = "";
+    RARITY_ORDER.forEach(function(r, idx){
+      h += '<button type="button" class="rpChip r-' + r + '" data-r="' + r +
+           '" aria-pressed="' + (idx === top) + '">' + r + '</button>';
+    });
+    rpGrid.innerHTML = h;
+    document.getElementById("rpNone").setAttribute("aria-pressed", String(top === -1));
+    rpJustOpenedUntil = viaLongPress ? Date.now() + LP_GUARD_MS : 0;
+    rarityPicker.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeRarityPicker(){
+    rarityPicker.hidden = true;
+    document.body.style.overflow = "";
+    rpActiveName = null;
+  }
+
+  // single delegated listener, guarded at the top so the long-press gesture's own trailing
+  // click (which lands somewhere in this modal, since it now covers the tile you were
+  // pressing) can't accidentally pick a rarity, hit Close, or dismiss via the backdrop
+  rarityPicker.addEventListener("click", function(e){
+    if (Date.now() < rpJustOpenedUntil) { e.preventDefault(); e.stopPropagation(); return; }
+    if (!rpActiveName) { closeRarityPicker(); return; }
+    var chip = e.target.closest(".rpChip");
+    if (chip) { setOwnedRarity(rpActiveName, chip.dataset.r); closeRarityPicker(); return; }
+    if (e.target.closest("#rpNone")) { clearOwned(rpActiveName); closeRarityPicker(); return; }
+    if (e.target.closest("#rpCancel") || e.target === rarityPicker) closeRarityPicker();
+  });
+
+  document.getElementById("chartbox").addEventListener("toggle", function(){
+    if (!this.open) return;
+    var row = document.getElementById("nowrow");
+    if (row) row.scrollIntoView({ block: "center" });
+  });
+
+  // reference table
+  (function(){
+    var h = "<tr><th>Rarity</th>";
+    for (var i = 0; i < CHIPS.cols.length; i++) h += "<th>" + CHIPS.cols[i] + "</th>";
+    h += "</tr>";
+    for (var r = 0; r < CHIPS.rows.length; r++) {
+      h += "<tr><td>" + CHIPS.rows[r][0] + "</td>";
+      for (var c = 1; c < CHIPS.rows[r].length; c++) h += "<td>" + CHIPS.rows[r][c] + "</td>";
+      h += "</tr>";
+    }
+    document.getElementById("chips").innerHTML = h;
+    document.getElementById("foot").innerHTML =
+      "Chart data: Droid Tycoon " + META.version + "<br>Money costs are identical in all four cycles.";
+  })();
+
+  render();
+})();
+</script>
+</body>
+</html>
