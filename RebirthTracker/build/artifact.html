@@ -358,6 +358,36 @@ td:first-child,th:first-child{text-align:left;padding-left:7px;font-weight:700}
 .legend b{color:var(--ink)}
 .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
 
+/* ---- backup / restore ---- */
+.bkLabel{
+  font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin:14px 0 6px;
+}
+.bkLabel:first-child{margin-top:0}
+.bkCode{
+  width:100%;resize:vertical;appearance:none;background:var(--panel2);color:var(--ink);
+  border:2px solid var(--line);border-radius:11px;padding:10px 11px;box-sizing:border-box;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.4;
+}
+.bkCode:focus-visible{border-color:var(--cyan);outline:none}
+.bkRow{display:flex;gap:8px;margin-top:8px}
+.bkBtn{
+  flex:1;appearance:none;cursor:pointer;text-align:center;
+  border:2px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);
+  padding:10px 8px;font:700 11px/1 inherit;letter-spacing:.06em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;
+}
+.bkBtn:active{background:#20202e}
+.bkStatus{font-size:11px;color:var(--dim);margin:8px 0 0;min-height:14px}
+.bkStatus.ok{color:var(--green)}
+.bkStatus.err{color:var(--later)}
+.icConfirm{
+  display:block;width:100%;appearance:none;cursor:pointer;margin:14px 0 8px;
+  background:var(--green);color:#04120b;border:2px solid var(--green);border-radius:11px;
+  padding:11px;font:800 12px/1 inherit;letter-spacing:.08em;text-transform:uppercase;
+}
+.icConfirm:active{background:#2ee085}
+
 /* ---- droid search ---- */
 .srHead{margin-bottom:8px}
 /* input + results ride together in a sticky dock so both stay pinned as the page scrolls.
@@ -503,7 +533,43 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     </div>
   </details>
 
+  <details id="backupbox">
+    <summary>Backup &amp; restore</summary>
+    <div class="inner">
+      <p class="key">Your progress lives only in this browser. Export a backup code before
+        switching devices, reinstalling, or clearing browser data &mdash; then import it
+        anywhere to bring everything back exactly as it was.</p>
+
+      <p class="bkLabel">Export</p>
+      <textarea id="bkExport" class="bkCode" readonly rows="3" aria-label="Backup code"></textarea>
+      <div class="bkRow">
+        <button class="bkBtn" id="bkCopy">Copy code</button>
+        <button class="bkBtn" id="bkDownload">Download file</button>
+      </div>
+      <p class="bkStatus" id="bkCopyStatus" aria-live="polite"></p>
+
+      <p class="bkLabel">Import</p>
+      <textarea id="bkImportBox" class="bkCode" rows="3"
+                placeholder="Paste a backup code here..." aria-label="Paste a backup code"></textarea>
+      <div class="bkRow">
+        <button class="bkBtn" id="bkImportBtn">Import</button>
+        <label class="bkBtn" id="bkFileLabel" for="bkFile">Choose file</label>
+        <input type="file" id="bkFile" accept=".txt,.json,text/plain" hidden>
+      </div>
+      <p class="bkStatus" id="bkImportStatus" aria-live="polite"></p>
+    </div>
+  </details>
+
   <footer id="foot"></footer>
+</div>
+
+<div class="modal" id="importConfirm" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="icTitle">
+    <h3 id="icTitle">Replace your current progress?</h3>
+    <p class="pkSub" id="icSummary"></p>
+    <button class="icConfirm" id="icConfirm">Import and replace</button>
+    <button class="pkCancel" id="icCancel">Cancel</button>
+  </div>
 </div>
 
 <div class="modal" id="picker" hidden>
@@ -908,6 +974,45 @@ var CYCLES={
   function lvl(){ return state.levels[state.cycle]; }
   function rows(){ return CYCLES[state.cycle]; }
 
+  // ---- backup / restore ---------------------------------------------------------------
+  // Progress only lives in this browser's storage, which iOS in particular can evict. The
+  // whole state object (droid names, rarities, numbers - all plain ASCII) round-trips safely
+  // through plain base64, so this stays a simple synchronous call, no TextEncoder needed.
+  var BACKUP_PREFIX = "SRT1:";
+  function exportCode(){ return BACKUP_PREFIX + btoa(JSON.stringify(state)); }
+
+  // Parses and sanitizes a pasted/uploaded code into a clean state object, or throws an
+  // Error with a message meant to be shown to the user directly. Never trusts the blob's
+  // shape - out-of-range or wrong-typed fields are dropped rather than applied as-is.
+  function parseBackupCode(raw){
+    var s = String(raw || "").trim();
+    if (!s) throw new Error("Paste a backup code first.");
+    if (s.indexOf(BACKUP_PREFIX) !== 0) throw new Error("That doesn't look like a Rebirth Tracker backup code.");
+    var json, obj;
+    try { json = atob(s.slice(BACKUP_PREFIX.length)); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
+    try { obj = JSON.parse(json); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
+    if (!obj || typeof obj !== "object") throw new Error("That code is corrupted or incomplete.");
+    if (!obj.levels || typeof obj.levels !== "object") throw new Error("That code is missing rebirth-level data.");
+    if (!(obj.cycle >= 1 && obj.cycle <= 4)) throw new Error("That code has an invalid cycle.");
+
+    var clean = { cycle: Math.min(4, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2 };
+    for (var c = 1; c <= 4; c++) clean.levels[c] = clamp(obj.levels[c] || 1);
+    if (obj.owned && typeof obj.owned === "object") {
+      for (var cy in obj.owned) {
+        if (!/^[1-4]$/.test(cy)) continue;
+        var src = obj.owned[cy], out = {};
+        if (src && typeof src === "object") {
+          for (var nm in src) {
+            var r = src[nm];
+            if (typeof r === "number" && r >= 0 && r <= 5) out[nm] = r;
+          }
+        }
+        clean.owned[cy] = out;
+      }
+    }
+    return clean;
+  }
+
   // Owned droids are tracked per cycle. The stored value is the rank of the HIGHEST rarity you
   // own for that droid; you implicitly own every rarity at or below it, so those tiles dim.
   function ownedSet(){ return state.owned[state.cycle] || (state.owned[state.cycle] = {}); }
@@ -1111,6 +1216,8 @@ var CYCLES={
   function render(){
     var L = lvl(), r = rows(), i;
 
+    document.getElementById("bkExport").value = exportCode();
+
     document.querySelectorAll(".cyc").forEach(function(b){
       b.setAttribute("aria-pressed", String(+b.dataset.c === state.cycle));
     });
@@ -1293,6 +1400,7 @@ var CYCLES={
     if (e.key !== "Escape") return;
     if (!picker.hidden) closePicker();
     if (!rarityPicker.hidden) closeRarityPicker();
+    if (!importConfirm.hidden) closeImportConfirm();
   });
 
   // ---- rarity picker (opened by press-and-hold / right-click on a chart tile) -----------
@@ -1346,6 +1454,84 @@ var CYCLES={
     var row = document.getElementById("nowrow");
     if (row) row.scrollIntoView({ block: "center" });
   });
+
+  // ---- backup / restore wiring ----------------------------------------------------------
+  var importConfirm = document.getElementById("importConfirm");
+  var pendingImport = null;
+
+  function setStatus(id, text, cls){
+    var el = document.getElementById(id);
+    el.textContent = text;
+    el.className = "bkStatus" + (cls ? " " + cls : "");
+  }
+
+  document.getElementById("bkCopy").addEventListener("click", function(){
+    var box = document.getElementById("bkExport");
+    function ok(){ setStatus("bkCopyStatus", "Copied to clipboard.", "ok"); }
+    function fail(){
+      box.focus(); box.select();
+      var worked = false;
+      try { worked = document.execCommand("copy"); } catch (e) {}
+      if (worked) { ok(); return; }
+      setStatus("bkCopyStatus", "Couldn't copy automatically. The code above is selected; copy it manually.", "err");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(box.value).then(ok, fail);
+    else fail();
+  });
+
+  document.getElementById("bkDownload").addEventListener("click", function(){
+    var blob = new Blob([exportCode()], { type: "text/plain" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "rebirth-tracker-backup.txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  document.getElementById("bkFile").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      document.getElementById("bkImportBox").value = String(reader.result || "").trim();
+      setStatus("bkImportStatus", "", "");
+    };
+    reader.readAsText(file);
+    e.target.value = "";   // allow re-choosing the same file later
+  });
+
+  document.getElementById("bkImportBtn").addEventListener("click", function(){
+    var parsed;
+    try { parsed = parseBackupCode(document.getElementById("bkImportBox").value); }
+    catch (err) { setStatus("bkImportStatus", err.message, "err"); return; }
+
+    var ownedCount = 0;
+    for (var cy in parsed.owned) ownedCount += Object.keys(parsed.owned[cy]).length;
+    pendingImport = parsed;
+    document.getElementById("icSummary").textContent =
+      "This backup has Cycle " + parsed.cycle + " at Rebirth " + parsed.levels[parsed.cycle] +
+      " (" + ownedCount + " owned-droid mark" + (ownedCount === 1 ? "" : "s") + " across all cycles). " +
+      "Your current progress on this device will be overwritten.";
+    importConfirm.hidden = false;
+    document.body.style.overflow = "hidden";
+  });
+
+  function closeImportConfirm(){
+    importConfirm.hidden = true;
+    document.body.style.overflow = "";
+    pendingImport = null;
+  }
+  document.getElementById("icCancel").addEventListener("click", closeImportConfirm);
+  document.getElementById("icConfirm").addEventListener("click", function(){
+    if (!pendingImport) return;
+    state = pendingImport;
+    save();
+    render();
+    closeImportConfirm();
+    document.getElementById("bkImportBox").value = "";
+    setStatus("bkImportStatus", "Progress imported.", "ok");
+  });
+  importConfirm.addEventListener("click", function(e){ if (e.target === importConfirm) closeImportConfirm(); });
 
   // reference table
   (function(){
