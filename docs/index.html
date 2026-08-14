@@ -1104,7 +1104,7 @@ var CYCLES={
     if (!obj.levels || typeof obj.levels !== "object") throw new Error("That code is missing rebirth-level data.");
     if (!(obj.cycle >= 1 && obj.cycle <= 4)) throw new Error("That code has an invalid cycle.");
 
-    var clean = { cycle: Math.min(4, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2 };
+    var clean = { cycle: Math.min(4, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2, threshold: clampT(obj.threshold) };
     for (var c = 1; c <= 4; c++) clean.levels[c] = clamp(obj.levels[c] || 1);
     if (obj.owned && typeof obj.owned === "object") {
       for (var cy in obj.owned) {
@@ -1366,12 +1366,12 @@ var CYCLES={
 
     var ln = document.getElementById("lvlnum");
     ln.textContent = L;
-    ln.className = "n" + (L >= 21 ? " late" : "");
+    ln.className = "n" + (L >= state.threshold ? " late" : "");
     document.getElementById("cost").textContent = COSTS[L - 1];
     document.getElementById("of").textContent = L + " of 30";
     var bar = document.getElementById("bar");
     bar.style.width = (L / 30 * 100) + "%";
-    bar.className = L >= 21 ? "late" : "";
+    bar.className = L >= state.threshold ? "late" : "";
     document.getElementById("down").disabled = L <= 1;
     document.getElementById("up").disabled = L >= 30;
 
