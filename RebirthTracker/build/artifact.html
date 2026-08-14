@@ -28,6 +28,15 @@ body,:root[data-theme="light"] body{
 }
 .wrap{max-width:640px;margin:0 auto;padding:0 12px}
 
+/* ---- moved notice (Artifact build only - see build-app.ps1) ---- */
+.movedBanner{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;
+  background:#1a1406;border-bottom:2px solid var(--amber);
+  color:var(--amber);font-size:12px;font-weight:700;text-align:center;
+  padding:10px 14px;
+}
+.movedBanner a{color:var(--amber);text-decoration:underline;font-weight:800;white-space:nowrap}
+
 /* ---- header ---- */
 header{
   padding:16px 0 10px; text-align:center;
@@ -433,6 +442,10 @@ td:first-child,th:first-child{text-align:left;padding-left:7px;font-weight:700}
 
 footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-top:22px}
 </style>
+<div class="movedBanner">
+  <span>This page has moved.</span>
+  <a href="https://btroyer2011.github.io/DroidTycoonTracker/" target="_blank" rel="noopener">Open the new version &rarr;</a>
+</div>
 <div class="wrap">
   <header>
     <h1>Super Rebirth Tracker</h1>
