@@ -129,6 +129,15 @@ header .lede{
   align-items:center;justify-content:center;
 }
 .searchToggle:active{background:var(--panel2)}
+/* settings cog: mirrors the search glass but on the left of the reset row, and shown on every
+   screen size (there is no wider desktop equivalent to fall back to). */
+.cogToggle{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
+  border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
+  display:flex;align-items:center;justify-content:center;
+}
+.cogToggle:active{background:var(--panel2)}
 
 @media (max-width:600px){
   /* collapsed by default on mobile: search area hidden, just the glass in the reset row */
@@ -183,6 +192,21 @@ header .lede{
   color:var(--dim);padding:11px;font:700 11px/1 inherit;letter-spacing:.16em;
   text-transform:uppercase;box-shadow:0 -10px 12px -6px var(--panel);
 }
+
+/* ---- settings: sell-early threshold stepper ---- */
+.stRow{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--panel2);border:2px solid var(--line);border-radius:13px;padding:12px;
+}
+.stLabel{font-size:13px;font-weight:700;color:var(--ink);max-width:190px}
+.stStep{display:flex;align-items:center;gap:14px}
+.stStep b{min-width:26px;text-align:center;font-size:22px;font-weight:800;color:var(--later)}
+.stBtn{
+  appearance:none;width:40px;height:40px;padding:0;border:2px solid var(--line);
+  background:var(--panel);color:var(--ink);border-radius:10px;font:800 22px/1 inherit;cursor:pointer;
+}
+.stBtn:active{background:var(--panel2)}
+.stBtn:disabled{opacity:.4;cursor:default}
 
 /* ---- rarity picker (press-and-hold, or right-click, a chart tile) ---- */
 .rpSheet{max-width:380px}
@@ -503,6 +527,13 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   </div>
   <div class="bar"><i id="bar"></i></div>
   <div class="resetrow">
+    <button class="cogToggle" id="settingsToggle" aria-label="Settings" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.2"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
     <button class="reset" id="reset">Reset to Rebirth 1</button>
     <button class="searchToggle" id="searchToggle" aria-label="Search a droid" aria-expanded="false">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
@@ -551,7 +582,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     <div class="inner">
       <p class="key">Cell outline:
         <span class="sw" style="background:var(--sell)"></span>sell after this rebirth
-        <span class="sw" style="background:var(--later)"></span>sell, needed again in 21&ndash;30
+        <span class="sw" style="background:var(--later)"></span>sell, needed again at rebirth&nbsp;<b id="klThresh">21</b>+
         <span class="sw" style="background:#3a4150"></span>keep
       </p>
       <p class="key" style="margin-top:2px"><b style="color:var(--cyan)">&#9670;</b> crystals earned
@@ -573,8 +604,8 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       <table id="chips"></table>
       <div class="legend">
         <p><span class="sw" style="background:var(--sell)"></span><b>SELL</b> &mdash; not required again anywhere in this cycle.</p>
-        <p><span class="sw" style="background:var(--later)"></span><b>SELL, but needed again</b> &mdash; safe to sell now, but the chart asks for it again in the Rebirth 21&ndash;30 block.</p>
-        <p><span class="sw" style="background:var(--keep)"></span><b>KEEP</b> &mdash; required again before Rebirth 21, so hold on to it.</p>
+        <p><span class="sw" style="background:var(--later)"></span><b>SELL, but needed again</b> &mdash; safe to sell now, but the chart asks for it again at Rebirth&nbsp;<b id="lgThresh">21</b> or later. Adjust this cutoff with the settings <span aria-hidden="true">&#9881;</span> cog.</p>
+        <p><span class="sw" style="background:var(--keep)"></span><b>KEEP</b> &mdash; required again before Rebirth&nbsp;<b id="lgThresh2">21</b>, so hold on to it.</p>
         <p><b style="color:var(--cyan)">&#10022; NEW</b> &mdash; the first rebirth this cycle that needs a droid: a fresh pull or build. On the chart it shows as a cyan dot.</p>
         <p><b style="color:#cfd3e0">&#8634; R<i>n</i></b> &mdash; you were already asked for this droid at Rebirth <i>n</i>, so you should own it &mdash; this rebirth just upgrades its rarity.</p>
         <p>Verdicts are worked out from the chart itself, not copied from the poster banners, so they stay correct at whatever rebirth you are on.</p>
@@ -618,6 +649,29 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     <p class="pkSub" id="icSummary"></p>
     <button class="icConfirm" id="icConfirm">Import and replace</button>
     <button class="pkCancel" id="icCancel">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" id="settings" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="stTitle">
+    <h3 id="stTitle">Settings</h3>
+    <p class="pkSub">Choose when a droid you don't currently need counts as
+      &ldquo;sell&nbsp;early.&rdquo;</p>
+    <div class="stRow">
+      <div class="stLabel">Red &ldquo;sell early&rdquo; starts at rebirth</div>
+      <div class="stStep">
+        <button class="stBtn" id="thDown" aria-label="Lower threshold">&minus;</button>
+        <b id="thVal">21</b>
+        <button class="stBtn" id="thUp" aria-label="Raise threshold">+</button>
+      </div>
+    </div>
+    <p class="pkSub stExplain" style="margin:12px 2px 0;text-align:left">
+      A droid you won't need again until rebirth <b id="thN1">21</b> or later shows a
+      <span style="color:var(--later);font-weight:800">red</span> outline &mdash; safe to sell now
+      and re-pull for the endgame. Needed again before rebirth <b id="thN2">21</b> &rarr; no
+      outline, so keep it. In the full chart, rebirth numbers from <b id="thN3">21</b> on are
+      shown in red to mark the block.</p>
+    <button class="pkCancel" id="stClose">Done</button>
   </div>
 </div>
 
@@ -993,6 +1047,10 @@ var CYCLES={
   "use strict";
   var KEY = "droidtycoon.rebirth.v1";
   var S = window.SPRITES || {};
+  // The rebirth at which the "sell early" (red) block begins. A droid you won't need again
+  // until this rebirth or later is safe to sell now and re-pull later; needed again sooner
+  // means keep it. 21 reproduces the original hard-coded behaviour. User-adjustable, global.
+  var THRESH_DEFAULT = 21;
 
   var state = (function(){
     try {
@@ -1001,6 +1059,7 @@ var CYCLES={
         for (var c = 1; c <= 4; c++) s.levels[c] = clamp(s.levels[c] || 1);
         s.cycle = Math.min(4, Math.max(1, s.cycle));
         if (!s.owned || typeof s.owned !== "object") s.owned = {};
+        s.threshold = clampT(s.threshold);
         // owned used to be a boolean (1 = whole droid owned); it is now the rank of the
         // highest owned rarity. Migrate any old marks to GALACTIC so they stay fully dimmed.
         if (s.ownedV !== 2) {
@@ -1010,7 +1069,7 @@ var CYCLES={
         return s;
       }
     } catch (e) {}
-    return { cycle: 1, levels: { 1:1, 2:1, 3:1, 4:1 }, owned: {}, ownedV: 2 };
+    return { cycle: 1, levels: { 1:1, 2:1, 3:1, 4:1 }, owned: {}, ownedV: 2, threshold: THRESH_DEFAULT };
   })();
 
   // rarity low -> high; a droid upgrades up this ladder, so owning it at one rank means you
@@ -1019,6 +1078,7 @@ var CYCLES={
   function rarityRank(x){ return RARITY_ORDER.indexOf(x); }
 
   function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(30, Math.max(1, n)); }
+  function clampT(n){ n = parseInt(n, 10); if (isNaN(n)) n = THRESH_DEFAULT; return Math.min(30, Math.max(1, n)); }
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   function lvl(){ return state.levels[state.cycle]; }
   function rows(){ return CYCLES[state.cycle]; }
@@ -1044,7 +1104,7 @@ var CYCLES={
     if (!obj.levels || typeof obj.levels !== "object") throw new Error("That code is missing rebirth-level data.");
     if (!(obj.cycle >= 1 && obj.cycle <= 4)) throw new Error("That code has an invalid cycle.");
 
-    var clean = { cycle: Math.min(4, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2 };
+    var clean = { cycle: Math.min(4, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2, threshold: clampT(obj.threshold) };
     for (var c = 1; c <= 4; c++) clean.levels[c] = clamp(obj.levels[c] || 1);
     if (obj.owned && typeof obj.owned === "object") {
       for (var cy in obj.owned) {
@@ -1125,12 +1185,22 @@ var CYCLES={
   }
 
   function verdict(level, name){
-    var nx = nextUse(level, name);
+    var nx = nextUse(level, name), T = state.threshold;
     if (!nx) return { cls:"sell",  tag:"SELL", note:"Not required again this cycle." };
     var at = "Rebirth " + nx.level + " \u00b7 " + nx.rarity;
-    if (level < 21 && nx.level >= 21)
+    if (level < T && nx.level >= T)
       return { cls:"later", tag:"SELL", note:"Safe to sell \u2014 but needed again at " + at + "." };
     return { cls:"keep", tag:"KEEP", note:"Needed again at " + at + "." };
+  }
+
+  // Chart-cell outline for owning `name` at rebirth `level`, honouring the sell-early
+  // threshold: "R" (red) = won't be needed again until the threshold+ block, so it's safe to
+  // sell now and re-pull later; "Y" = never needed again; "-" = needed again sooner, keep it.
+  function cellBorder(level, name){
+    var nx = nextUse(level, name), T = state.threshold;
+    if (!nx) return "Y";
+    if (level < T && nx.level >= T) return "R";
+    return "-";
   }
 
   function art(d, cls){
@@ -1160,7 +1230,7 @@ var CYCLES={
     var L = lvl(), r = rows(), h = "";
     for (var i = 0; i < 30; i++) {
       var n = i + 1;
-      h += '<div class="row' + (n === L ? " now" : "") + (n >= 21 ? " late" : "") + '"' +
+      h += '<div class="row' + (n === L ? " now" : "") + (n >= state.threshold ? " late" : "") + '"' +
            (n === L ? ' id="nowrow"' : "") + '>' +
            '<div class="lv"><b>' + n + '</b><i>' + COSTS[i] + '</i>' +
              (CRYSTALS[n] ? '<span class="cry">\u25C6' + CRYSTALS[n] + '</span>' : '') +
@@ -1185,7 +1255,7 @@ var CYCLES={
             }).join("") + '</div>';
         }
         var own = isOwned(d.n, d.r);
-        h += '<div class="cell f-' + d.b + (own ? ' owned' : '') + '" data-nm="' + esc(d.n) +
+        h += '<div class="cell f-' + cellBorder(n, d.n) + (own ? ' owned' : '') + '" data-nm="' + esc(d.n) +
              '" data-r="' + d.r + '" title="' + (own ?
                'Owned at ' + d.r + ' - tap to give up this rarity and above' :
                'Tap: you own ' + d.n + ' at ' + d.r + ' (and below)') + '">' +
@@ -1296,14 +1366,23 @@ var CYCLES={
 
     var ln = document.getElementById("lvlnum");
     ln.textContent = L;
-    ln.className = "n" + (L >= 21 ? " late" : "");
+    ln.className = "n" + (L >= state.threshold ? " late" : "");
     document.getElementById("cost").textContent = COSTS[L - 1];
     document.getElementById("of").textContent = L + " of 30";
     var bar = document.getElementById("bar");
     bar.style.width = (L / 30 * 100) + "%";
-    bar.className = L >= 21 ? "late" : "";
+    bar.className = L >= state.threshold ? "late" : "";
     document.getElementById("down").disabled = L <= 1;
     document.getElementById("up").disabled = L >= 30;
+
+    // reflect the current sell-early threshold everywhere it is shown
+    var T = state.threshold;
+    ["thVal", "thN1", "thN2", "thN3", "klThresh", "lgThresh", "lgThresh2"].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.textContent = T;
+    });
+    document.getElementById("thDown").disabled = T <= 1;
+    document.getElementById("thUp").disabled = T >= 30;
 
     var needLabel = "Rebirth " + L + " \u2014 " + COSTS[L - 1];
     document.getElementById("curlv").textContent = needLabel;
@@ -1458,6 +1537,18 @@ var CYCLES={
   document.getElementById("reset").addEventListener("click", openPicker);
   document.getElementById("pkCancel").addEventListener("click", closePicker);
 
+  // ---- settings (sell-early threshold) ------------------------------------------------
+  var settings = document.getElementById("settings");
+  function openSettings(){ settings.hidden = false; document.body.style.overflow = "hidden";
+    document.getElementById("stClose").focus(); }
+  function closeSettings(){ settings.hidden = true; document.body.style.overflow = ""; }
+  function setThreshold(n){ state.threshold = clampT(n); render(); }
+  document.getElementById("settingsToggle").addEventListener("click", openSettings);
+  document.getElementById("stClose").addEventListener("click", closeSettings);
+  document.getElementById("thUp").addEventListener("click", function(){ setThreshold(state.threshold + 1); });
+  document.getElementById("thDown").addEventListener("click", function(){ setThreshold(state.threshold - 1); });
+  settings.addEventListener("click", function(e){ if (e.target === settings) closeSettings(); });
+
   pkList.addEventListener("click", function(e){
     var b = e.target.closest(".pk"); if (!b) return;
     state.cycle = +b.dataset.c;
@@ -1471,6 +1562,7 @@ var CYCLES={
   document.addEventListener("keydown", function(e){
     if (e.key !== "Escape") return;
     if (!picker.hidden) closePicker();
+    if (!settings.hidden) closeSettings();
     if (!rarityPicker.hidden) closeRarityPicker();
     if (!importConfirm.hidden) closeImportConfirm();
   });
