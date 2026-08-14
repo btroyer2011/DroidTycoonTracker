@@ -445,17 +445,28 @@ td:first-child,th:first-child{text-align:left;padding-left:7px;font-weight:700}
   display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;
   background:var(--panel);border:2px solid var(--line);border-radius:11px;padding:7px;
 }
+.srArt{position:relative;width:56px}
 .sr img,.sr .noimg{
   width:56px;border-radius:7px;display:block;aspect-ratio:212/162;object-fit:cover;background:#000;
+}
+/* owned droid: dim its art and stamp a check, mirroring the chart tiles */
+.sr.owned img,.sr.owned .noimg{filter:grayscale(1) brightness(.5)}
+.srCheck{
+  position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;
+  background:var(--green);color:#04120b;font-size:11px;font-weight:900;line-height:16px;
+  text-align:center;box-shadow:0 0 0 2px var(--panel);pointer-events:none;
 }
 .srBody{min-width:0}
 .srName{font-size:13px;font-weight:700;line-height:1.2;margin-bottom:5px}
 .srChips{display:flex;flex-wrap:wrap;gap:4px}
+/* chips double as ownership toggles: tap one to mark you own that rarity (and below) */
 .srChip{
-  font-size:10px;font-weight:700;background:var(--panel2);border:1px solid var(--line);
-  border-radius:6px;padding:3px 6px;color:var(--dim);white-space:nowrap;
+  font:inherit;font-size:10px;font-weight:700;background:var(--panel2);border:1px solid var(--line);
+  border-radius:6px;padding:3px 6px;color:var(--dim);white-space:nowrap;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
 }
 .srChip.first{border-color:var(--cyan)}
+.srChip.owned{border-color:var(--green);background:rgba(61,255,154,.14);color:var(--ink)}
 .srChip b{font-weight:800;letter-spacing:.03em;margin-left:3px}
 
 footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-top:22px}
@@ -505,7 +516,8 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     <div id="searchResults" class="searchResults"></div>
   </div>
   <p class="srNote"><b style="color:var(--cyan)">&#10022; NEW</b> marks the first rebirth that
-    needs a droid &mdash; a fresh pull. Later entries (<b>&#8634;</b>) upgrade the one you already own.</p>
+    needs a droid &mdash; a fresh pull. Later entries (<b>&#8634;</b>) upgrade the one you already own.
+    Tap a rarity to mark it <b style="color:var(--green)">&#10003; owned</b>.</p>
 
   <details id="needbox">
     <summary>This rebirth <em id="needSum">Rebirth 1</em></summary>
@@ -1190,7 +1202,8 @@ var CYCLES={
     var box = document.getElementById("searchResults");
     if (!q) {
       box.innerHTML = '<p class="searchHint">Type a droid name to see every rebirth it is ' +
-        'needed at in Cycle ' + state.cycle + ', and the rarity each time.</p>';
+        'needed at in Cycle ' + state.cycle + ', and the rarity each time. Tap a rarity to ' +
+        'mark that you own the droid — it syncs with the chart.</p>';
       return;
     }
     var r = rows(), added = {}, names = [];
@@ -1208,12 +1221,25 @@ var CYCLES={
     var h = "";
     names.forEach(function(nm){
       var ap = appearances(nm);
+      var top = ownedTop(nm), ownedAny = false;
+      // Each chip is a toggle: tapping it marks you own this droid at that rarity, reusing the
+      // same rank-based model as the chart (own a rarity => own it and every rarity below).
+      // The row's owned styling tracks the shown rarities only, so it never dims for an implied
+      // lower rarity (e.g. BASE) that the droid is never actually needed at in this cycle.
       var chips = ap.map(function(a, idx){
-        return '<span class="srChip' + (idx === 0 ? " first" : "") + '">' +
-               (idx === 0 ? "\u2726 " : "") + "R" + a.level +
-               ' <b class="r-' + a.rarity + '">' + a.rarity + "</b></span>";
+        var owned = rarityRank(a.rarity) <= top;
+        if (owned) ownedAny = true;
+        return '<button type="button" class="srChip' + (idx === 0 ? " first" : "") +
+               (owned ? " owned" : "") + '" data-nm="' + esc(nm) + '" data-r="' + a.rarity +
+               '" aria-pressed="' + owned + '" title="' + (owned ?
+                 "You own " + esc(nm) + " at " + a.rarity + " - tap to give up this rarity and above" :
+                 "Tap to mark you own " + esc(nm) + " at " + a.rarity + " (and below)") + '">' +
+               (owned ? "\u2713 " : (idx === 0 ? "\u2726 " : "")) + "R" + a.level +
+               ' <b class="r-' + a.rarity + '">' + a.rarity + "</b></button>";
       }).join("");
-      h += '<div class="sr">' + art({ n: nm, r: ap[0].rarity }, "") +
+      h += '<div class="sr' + (ownedAny ? " owned" : "") + '">' +
+           '<div class="srArt">' + art({ n: nm, r: ap[0].rarity }, "") +
+             (ownedAny ? '<span class="srCheck">\u2713</span>' : "") + '</div>' +
            '<div class="srBody"><div class="srName">' + esc(nm) + '</div>' +
            '<div class="srChips">' + chips + '</div></div></div>';
     });
@@ -1221,6 +1247,15 @@ var CYCLES={
   }
 
   searchInput.addEventListener("input", renderSearch);
+
+  // Tapping a rarity chip in the search results marks (or un-marks) ownership at that rarity.
+  // Ownership is shared with the chart, so keep both views in sync after a toggle.
+  document.getElementById("searchResults").addEventListener("click", function(e){
+    var chip = e.target.closest(".srChip");
+    if (!chip) return;
+    toggleOwnedRarity(chip.dataset.nm, chip.dataset.r);
+    renderSearch();
+  });
 
   // ---- collapsible search (mobile) --------------------------------------------------
   // On narrow screens the search area is hidden behind a magnifying glass in the reset row.
