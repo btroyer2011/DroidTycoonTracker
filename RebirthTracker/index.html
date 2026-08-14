@@ -1067,19 +1067,19 @@ var CYCLES={
     if (r <= cur) { if (r - 1 < 0) delete s[name]; else s[name] = r - 1; }
     else s[name] = r;
     save();
-    renderChart();
+    renderChart(); renderSearch();
   }
   // Set directly from the press-and-hold rarity picker, rather than inferring it from which
   // tile was tapped - lets you jump straight to a rarity that isn't on screen.
   function setOwnedRarity(name, rarity){
     ownedSet()[name] = rarityRank(rarity);
     save();
-    renderChart();
+    renderChart(); renderSearch();
   }
   function clearOwned(name){
     delete ownedSet()[name];
     save();
-    renderChart();
+    renderChart(); renderSearch();
   }
   function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
@@ -1249,12 +1249,12 @@ var CYCLES={
   searchInput.addEventListener("input", renderSearch);
 
   // Tapping a rarity chip in the search results marks (or un-marks) ownership at that rarity.
-  // Ownership is shared with the chart, so keep both views in sync after a toggle.
+  // toggleOwnedRarity re-renders both the chart and the search results, so the two views stay
+  // in sync no matter which one the toggle came from.
   document.getElementById("searchResults").addEventListener("click", function(e){
     var chip = e.target.closest(".srChip");
     if (!chip) return;
     toggleOwnedRarity(chip.dataset.nm, chip.dataset.r);
-    renderSearch();
   });
 
   // ---- collapsible search (mobile) --------------------------------------------------
