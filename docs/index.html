@@ -44,10 +44,14 @@ body,:root[data-theme="light"] body{
 
 /* ---- moved notice (Artifact build only - see build-app.ps1) ---- */
 .movedBanner{
+  /* topmost of the sticky stack. Its own height varies with how the sub-line wraps at
+     different widths, so JS (syncStickyOffsets) pushes .resetrow/.searchDock down to clear
+     it exactly rather than a second hardcoded guess - see that function for why. */
+  position:sticky;top:0;z-index:30;
   display:flex;flex-direction:column;align-items:center;gap:4px;
   background:#1a1406;border-bottom:2px solid var(--amber);
   color:var(--amber);font-size:12px;font-weight:700;text-align:center;
-  padding:10px 14px;
+  padding:10px 14px;box-shadow:0 8px 14px -10px #000;
 }
 .movedBannerRow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px}
 .movedBanner a{color:var(--amber);text-decoration:underline;font-weight:800;white-space:nowrap}
@@ -104,6 +108,8 @@ header .lede{
 /* pinned above everything (including the search dock) so it's reachable from anywhere on
    the page; solid background covers content scrolling underneath */
 .resetrow{
+  /* top is a fallback (0, i.e. no banner above it) - syncStickyOffsets() sets the real value
+     once the moved-banner's rendered height (if any) is known. */
   position:sticky;top:0;z-index:25;
   display:flex;justify-content:center;align-items:center;
   background:var(--bg);padding:9px 0;margin-bottom:14px;
@@ -297,8 +303,9 @@ details[open] summary::after{transform:rotate(180deg)}
   border:2px solid transparent;border-radius:9px;padding:3px;
 }
 .row.now{border-color:var(--green);background:#0c1a13}
-/* keep the current row clear of the pinned search bar when scrolled into view */
-.row{scroll-margin-top:116px}
+/* keep the current row clear of the pinned banner/reset/search stack when scrolled into view.
+   --stackH is set by syncStickyOffsets(); 116px is only the pre-JS fallback. */
+.row{scroll-margin-top:var(--stackH, 116px)}
 .row.head{padding-top:8px}
 .row .lv{
   display:flex;flex-direction:column;justify-content:center;align-items:center;
@@ -419,8 +426,9 @@ td:first-child,th:first-child{text-align:left;padding-left:7px;font-weight:700}
 /* input + results ride together in a sticky dock so both stay pinned as the page scrolls.
    Solid page-coloured background covers content scrolling behind, including the row gaps. */
 .searchDock{
-  /* 53px = the sticky reset bar's rendered height, so this settles right below it
-     rather than sticking at 0 and overlapping */
+  /* top is a fallback only - syncStickyOffsets() sets the real value at runtime, since it
+     depends on the reset bar's height and (on the Artifact build) the moved-banner's, and
+     both of those change with viewport width. 53px matches the no-banner builds until JS runs. */
   position:sticky;top:53px;z-index:20;
   background:var(--bg);padding-bottom:8px;margin-bottom:12px;
   box-shadow:0 10px 12px -10px #000;
@@ -1576,6 +1584,30 @@ var CYCLES={
     document.getElementById("foot").innerHTML =
       "Chart data: Droid Tycoon " + META.version + "<br>Money costs are identical in all four cycles.";
   })();
+
+  // ---- sticky stack offsets --------------------------------------------------------------
+  // The moved-banner (Artifact build only) and the reset bar both sit above the sticky search
+  // dock, and the banner's own height changes with how its sub-line wraps at different widths -
+  // so their offsets are measured at runtime instead of hardcoded, and re-measured on resize.
+  function syncStickyOffsets(){
+    var banner = document.querySelector(".movedBanner");
+    var bH = banner ? banner.getBoundingClientRect().height : 0;
+    var reset = document.getElementById("reset").closest(".resetrow");
+    reset.style.top = bH + "px";
+    var rH = reset.getBoundingClientRect().height;
+    var dock = document.querySelector(".searchDock");
+    dock.style.top = (bH + rH) + "px";
+    var dH = dock.getBoundingClientRect().height;
+    // used by .row's scroll-margin-top, so scrollIntoView clears the whole stack, not just
+    // the reset bar - the search dock's own height varies too (hint text vs. results list)
+    document.documentElement.style.setProperty("--stackH", (bH + rH + dH + 12) + "px");
+  }
+  syncStickyOffsets();
+  var stickyResizeTimer = null;
+  window.addEventListener("resize", function(){
+    clearTimeout(stickyResizeTimer);
+    stickyResizeTimer = setTimeout(syncStickyOffsets, 120);
+  });
 
   render();
 })();
