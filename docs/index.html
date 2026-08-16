@@ -1140,7 +1140,7 @@ CYCLES[5] = (function(){
     try { obj = JSON.parse(json); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
     if (!obj || typeof obj !== "object") throw new Error("That code is corrupted or incomplete.");
     if (!obj.levels || typeof obj.levels !== "object") throw new Error("That code is missing rebirth-level data.");
-    if (!(obj.cycle >= 1 && obj.cycle <= 4)) throw new Error("That code has an invalid cycle.");
+    if (!(obj.cycle >= 1 && obj.cycle <= 5)) throw new Error("That code has an invalid cycle.");
 
     var clean = { cycle: Math.min(5, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2, threshold: clampT(obj.threshold) };
     for (var c = 1; c <= 5; c++) clean.levels[c] = clamp(obj.levels[c] || 1);
@@ -1448,7 +1448,7 @@ CYCLES[5] = (function(){
         h += '<div class="v unk"><div class="unkArt">?</div>' +
              '<div class="who"><div class="nm">Unknown</div>' +
              '<div class="rr">?</div>' +
-             '<div class="note">Not documented yet for Cycle 5.</div></div>' +
+             '<div class="note">Not documented yet for Cycle ' + state.cycle + '.</div></div>' +
              '<div class="tag">?</div></div>';
         continue;
       }
@@ -1554,7 +1554,7 @@ CYCLES[5] = (function(){
   // ---- reset flow -------------------------------------------------------------------
   // Resetting means you have just super-rebirthed, and the cycle you land on may not be the
   // one you were just on. Every cycle's Rebirth 1 asks for a different trio of droids, so
-  // instead of guessing we show all four and let you pick the set the game is showing you.
+  // instead of guessing we show all of them and let you pick the set the game is showing you.
   var picker  = document.getElementById("picker");
   var pkList  = document.getElementById("pkList");
 
