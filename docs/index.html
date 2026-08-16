@@ -166,18 +166,19 @@ header .lede{
   margin:0 0 14px;font-size:12px;color:var(--dim);text-align:center;line-height:1.45;
 }
 .pk{
-  display:block;width:100%;text-align:left;cursor:pointer;margin-bottom:9px;
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;margin-bottom:8px;
   background:var(--panel2);border:2px solid var(--line);border-radius:13px;
-  padding:9px;font:inherit;color:inherit;
+  padding:12px 14px;font:inherit;color:inherit;
 }
 .pk:active{background:#20202e}
 .pk[aria-pressed="true"]{border-color:var(--green)}
-.pkHead{
-  font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
-  font-weight:800;margin-bottom:7px;display:flex;justify-content:space-between;
+.pkNum{
+  flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:var(--panel);border:2px solid var(--line);font-size:16px;font-weight:800;color:var(--ink);
 }
-.pk[aria-pressed="true"] .pkHead{color:var(--green)}
-.pkHead .cur{letter-spacing:.08em}
+.pk[aria-pressed="true"] .pkNum{border-color:var(--green);color:var(--green)}
+.pkLbl{flex:1;font-size:14px;font-weight:800;letter-spacing:.02em}
+.pk .cur{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
 .pkTiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .pkT{background:#000;border:2px solid var(--line);border-radius:9px;overflow:hidden}
 .pkT img{width:100%;display:block;aspect-ratio:212/162;object-fit:cover}
@@ -696,9 +697,8 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 <div class="modal" id="picker" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
     <h3 id="pkTitle">Which cycle are you on?</h3>
-    <p class="pkSub">After a super rebirth, match what the game is asking you for at Rebirth&nbsp;1
-      against the sets below. Most trios are unique; a couple of cycles share the same Rebirth&nbsp;1
-      lineup, so if two look identical, pick either and switch cycles later if the droids stop matching.</p>
+    <p class="pkSub">Pick the cycle you're now on. It switches to that cycle and resets it to
+      Rebirth&nbsp;1.</p>
     <div id="pkList"></div>
     <button class="pkCancel" id="pkCancel">Cancel</button>
   </div>
@@ -1078,7 +1078,7 @@ var CYCLES={
     mk([["R9","GOLD"],["B1 BATTLE","GOLD"],["B1 SECURITY","GOLD"]]),              // 4
     mk([["BAL-CORE","GOLD"],["R4","GOLD"],["R3","GOLD"]]),                        // 5
     mk([["GUNRUNNER","BASE"],["2BB","DIAMOND"],["BDX EXPLORER","DIAMOND"]]),      // 6
-    mk([["ROLL-R","DIAMOND"],["R5","DIAMOND"],["R2","DIAMOND"]]),                 // 7
+    mk([["ROLL-R","DIAMOND"],["R5","DIAMOND"],["R2","GOLD"]]),                    // 7
     mk([["B2 SUPER","GOLD"],["R8","DIAMOND"],["B1 BATTLE","DIAMOND"]]),           // 8
     mk([["NAV-EX","RAINBOW"],["STRIKE-ORB","GOLD"],["AMP WALKER","GOLD"]]),       // 9
     mk([["DRK-I PROBE","BESKAR"],["GROUNDMECH","BASE"],["TRAK-R","BASE"]]),       // 10
@@ -1590,22 +1590,10 @@ var CYCLES={
   (function buildPicker(){
     var h = "";
     for (var c = 1; c <= 5; c++) {
-      var row = CYCLES[c][0];
       h += '<button class="pk" data-c="' + c + '" aria-pressed="false">' +
-             '<div class="pkHead"><span>Cycle ' + c + '</span>' +
-             '<span class="cur" data-cur="' + c + '"></span></div><div class="pkTiles">';
-      for (var j = 0; j < 3; j++) {
-        var d = row[j];
-        if (d.u) {
-          h += '<div class="pkT unk"><div class="unkArt">?</div>' +
-               '<div class="pkM"><div class="rar">?</div><div class="nm">Unknown</div></div></div>';
-          continue;
-        }
-        h += '<div class="pkT br-' + d.r + '">' + art(d, "") +
-             '<div class="pkM"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
-             '<div class="nm">' + esc(d.n) + '</div></div></div>';
-      }
-      h += "</div></button>";
+             '<span class="pkNum">' + c + '</span>' +
+             '<span class="pkLbl">Cycle ' + c + '</span>' +
+             '<span class="cur" data-cur="' + c + '"></span></button>';
     }
     pkList.innerHTML = h;
   })();
