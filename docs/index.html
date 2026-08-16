@@ -1165,6 +1165,19 @@ var CYCLES={
   function rarityRank(x){ return RARITY_ORDER.indexOf(x); }
   // A droid's intrinsic rarity class, used to tint its name. Falls back to COMMON.
   function rarityClass(name){ return DROID_RARITY[name] || "COMMON"; }
+  // Dev safety net: DROID_RARITY is maintained alongside CYCLES, so warn (once per name) if a
+  // droid in the data has no class - it would silently render white like a Common otherwise.
+  (function(){
+    var warned = {};
+    for (var c = 1; c <= 5; c++) CYCLES[c].forEach(function(row){
+      row.forEach(function(d){
+        if (!d.u && !DROID_RARITY[d.n] && !warned[d.n]) {
+          warned[d.n] = 1;
+          if (window.console && console.warn) console.warn("No rarity class for droid: " + d.n);
+        }
+      });
+    });
+  })();
 
   function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(MAXLVL, Math.max(1, n)); }
   function clampT(n){ n = parseInt(n, 10); if (isNaN(n)) n = THRESH_DEFAULT; return Math.min(MAXLVL, Math.max(1, n)); }
