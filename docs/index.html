@@ -1082,14 +1082,45 @@ var CYCLES={
 ],
 };
 
-// All five cycles now run to 35 rebirths. Cycle 5 is fully documented (poster, Rebirths 1-35).
-// Cycles 1-4's Rebirths 31-35 aren't documented yet, so they are padded with unknown "?"
-// placeholders (u:1) until that data arrives.
+// All five cycles run to 35 rebirths. Cycles 1-4 carry their first 30 rebirths in the CYCLES
+// literal above; their Rebirths 31-35 (from the guide posters) are appended here, and Cycle 5
+// (documented 1-35) is defined in full below.
 (function extendCycles(){
   var U  = function(){ return { n: "?", r: "?", u: 1 }; };
   var mk = function(cells){ return cells.map(function(c){ return { n: c[0], r: c[1] }; }); };
+  var tail = {
+    1: [
+      mk([["SEN-TRI","STELLAR"],["PROTO ROLLER","BESKAR"],["KX","BESKAR"]]),         // 31
+      mk([["ORB WALKER","GALACTIC"],["OPTI-POD","GALACTIC"],["RIC","BESKAR"]]),       // 32
+      mk([["B1 HEAVY","STELLAR"],["CYCLO-GRAV","GALACTIC"],["DRFT-R","GALACTIC"]]),   // 33
+      mk([["GROUNDMECH","STELLAR"],["BB","STELLAR"],["CYCLENS","GALACTIC"]]),         // 34
+      mk([["BB9","STELLAR"],["IG","STELLAR"],["SNOW MOUSE","STELLAR"]])               // 35
+    ],
+    2: [
+      mk([["B2 SUPER","STELLAR"],["B2-RP","BESKAR"],["LOADLIFTER","BESKAR"]]),        // 31
+      mk([["GUNRUNNER","GALACTIC"],["B1 HEAVY","GALACTIC"],["LEP","BESKAR"]]),        // 32
+      mk([["R2","STELLAR"],["OPTI-STRK","GALACTIC"],["KX","GALACTIC"]]),              // 33
+      mk([["R6","STELLAR"],["LO","STELLAR"],["RIC","GALACTIC"]]),                     // 34
+      mk([["R7","STELLAR"],["DRFT-R","STELLAR"],["CYCLENS","STELLAR"]])               // 35
+    ],
+    3: [
+      mk([["B2 HEAVY","STELLAR"],["MECHA DROID","BESKAR"],["RIC-1200","BESKAR"]]),    // 31
+      mk([["GROUNDMECH","GALACTIC"],["BB","GALACTIC"],["MO-TRAK","BESKAR"]]),         // 32
+      mk([["TRAK-R","STELLAR"],["MONO-WLKR","GALACTIC"],["LOADLIFTER","GALACTIC"]]),  // 33
+      mk([["ORB WALKER","STELLAR"],["B2 SUPER","STELLAR"],["LEP","STELLAR"]]),        // 34
+      mk([["PROTO ROLLER","STELLAR"],["KX","STELLAR"],["RIC","STELLAR"]])             // 35
+    ],
+    4: [
+      mk([["TRAK-R","STELLAR"],["CYCLO-GRAV","BESKAR"],["TRI-TEK","BESKAR"]]),        // 31
+      mk([["R2","GALACTIC"],["R6","GALACTIC"],["IG","BESKAR"]]),                      // 32
+      mk([["B2 HEAVY","STELLAR"],["BB9","GALACTIC"],["RIC-1200","GALACTIC"]]),        // 33
+      mk([["STRIKE-ORB","STELLAR"],["AMP WALKER","STELLAR"],["MO-TRAK","GALACTIC"]]), // 34
+      mk([["B2-RP","STELLAR"],["LOADLIFTER","STELLAR"],["LEP","STELLAR"]])            // 35
+    ]
+  };
   for (var c = 1; c <= 4; c++) {
-    while (CYCLES[c].length < 35) CYCLES[c].push([U(), U(), U()]);
+    tail[c].forEach(function(row){ CYCLES[c].push(row); });
+    while (CYCLES[c].length < 35) CYCLES[c].push([U(), U(), U()]);  // safety pad
   }
   CYCLES[5] = [
     mk([["ID10","BASE"],["MOUSE","BASE"],["GONK","BASE"]]),                       // 1
