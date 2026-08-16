@@ -706,7 +706,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
     <h3 id="pkTitle">Which cycle are you on?</h3>
     <p class="pkSub">Pick the cycle you're now on. It switches to that cycle, resets it to
-      Rebirth&nbsp;1, and clears that cycle's owned droids.</p>
+      Rebirth&nbsp;1, and clears owned droids across every cycle.</p>
     <div id="pkList"></div>
     <button class="pkCancel" id="pkCancel">Cancel</button>
   </div>
@@ -1669,7 +1669,7 @@ var CYCLES={
     var b = e.target.closest(".pk"); if (!b) return;
     state.cycle = +b.dataset.c;
     state.levels[state.cycle] = 1;      // the chosen cycle restarts at Rebirth 1...
-    state.owned[state.cycle] = {};      // ...and a super rebirth clears its owned droids
+    state.owned = {};                   // ...and a super rebirth clears every cycle's owned droids
     closePicker();
     render();
     window.scrollTo(0, 0);
