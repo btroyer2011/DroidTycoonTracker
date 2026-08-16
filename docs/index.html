@@ -267,6 +267,14 @@ section{margin-bottom:20px}
   color:var(--dim);font-size:10px;letter-spacing:.1em;background:#0c0c12;
 }
 
+/* droid-name rarity-class colours (Common/Rare/Epic/Legendary/Mythic) - these tint the
+   droid NAME, independent of the per-cell variation (BASE/GOLD/...) which keeps its own hue. */
+.rc-COMMON{color:#ffffff;-webkit-text-fill-color:#ffffff}
+.rc-RARE{color:#3fd3ff;-webkit-text-fill-color:#3fd3ff}
+.rc-EPIC{color:#5b8cff;-webkit-text-fill-color:#5b8cff}
+.rc-LEGENDARY{color:#ffcf3a;-webkit-text-fill-color:#ffcf3a}
+.rc-MYTHIC{color:#c9a3ff;-webkit-text-fill-color:#c9a3ff}
+
 /* rarity colours */
 .r-BASE{color:var(--r-BASE)} .r-GOLD{color:var(--r-GOLD)}
 .r-DIAMOND{color:var(--r-DIAMOND)} .r-BESKAR{color:var(--r-BESKAR)}
@@ -924,6 +932,18 @@ var COSTS=["10K","150K","975K","2.95M","5.35M","9.85M","14.5M","36M","89M","220M
 var MAXLVL=35;
 var CRYSTALS={12:11,13:16,14:22,15:29,16:37,17:46,18:56,19:67,20:79,21:92,22:106,23:121,24:137,25:154,26:172,27:191,28:221,29:232,30:254};
 var META={version:"Update v1.23 (25 Jul 2026)"};
+// Each droid's intrinsic rarity class (independent of the per-cell BASE/GOLD/... variation).
+// Droid NAMES are tinted by this; the variation label keeps its own colour.
+var DROID_RARITY=(function(){
+  var g={
+    COMMON:["MOUSE","PIT","GONK","CB","R3","R5","R8","DRK-I PROBE","ID10","B1 BATTLE"],
+    RARE:["BDX EXPLORER","ARG","SENATE HOVER","B-U4D","BAL-CORE","ROLL-R","2BB","A-LT","R4","R9","B1 SECURITY","NAV-EX","VECT-ARM","HOV-R"],
+    EPIC:["GROUNDMECH","LO","AMP WALKER","SEN-TRI","OPTI-POD","GUNRUNNER","BB","R2","R6","TRAK-R","ORB WALKER","UTIL-TEC","B1 HEAVY","B2 SUPER","B2 HEAVY","STRIKE-ORB","HAUL-R","LNG-SHOT"],
+    LEGENDARY:["PROTO ROLLER","MECHA DROID","MONO-WLKR","BB9","R7","B2-RP","CYCLO-GRAV","OPTI-STRK"],
+    MYTHIC:["SNOW MOUSE","RIC","LOADLIFTER","LEP","RIC-1200","DRFT-R","CYCLENS","MO-TRAK","TRI-TEK","IG","KX"]
+  };
+  var m={}; for (var k in g) g[k].forEach(function(n){ m[n]=k; }); return m;
+})();
 var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic"],rows:[
 ["Common",10,25,40,80,120],
 ["Rare",30,60,100,250,400],
@@ -1143,6 +1163,8 @@ var CYCLES={
   // already have every rank below it.
   var RARITY_ORDER = ["BASE", "GOLD", "DIAMOND", "RAINBOW", "BESKAR", "GALACTIC", "STELLAR"];
   function rarityRank(x){ return RARITY_ORDER.indexOf(x); }
+  // A droid's intrinsic rarity class, used to tint its name. Falls back to COMMON.
+  function rarityClass(name){ return DROID_RARITY[name] || "COMMON"; }
 
   function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(MAXLVL, Math.max(1, n)); }
   function clampT(n){ n = parseInt(n, 10); if (isNaN(n)) n = THRESH_DEFAULT; return Math.min(MAXLVL, Math.max(1, n)); }
@@ -1284,7 +1306,7 @@ var CYCLES={
     return '<div class="tile br-' + d.r + (ghost ? " ghost" : "") + '">' +
              ownBadge(level, d.n) + art(d, "") +
              '<div class="meta"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
-             '<div class="nm">' + esc(d.n) + '</div></div></div>';
+             '<div class="nm rc-' + rarityClass(d.n) + '">' + esc(d.n) + '</div></div></div>';
   }
 
   // The cycle pills are built once and only their pressed state changes, so element
@@ -1342,7 +1364,7 @@ var CYCLES={
                (own ? '<span class="cown">\u2713</span>' : "") +
              '</div>' +
              '<div class="cm"><div class="cr r-' + d.r + '">' + d.r + '</div>' +
-             '<div class="cn r-' + d.r + '">' + esc(d.n) + '</div></div></div>';
+             '<div class="cn rc-' + rarityClass(d.n) + '">' + esc(d.n) + '</div></div></div>';
       }
       h += "</div>";
     }
@@ -1396,7 +1418,7 @@ var CYCLES={
       h += '<div class="sr' + (ownedAny ? " owned" : "") + '">' +
            '<div class="srArt">' + art({ n: nm, r: ap[0].rarity }, "") +
              (ownedAny ? '<span class="srCheck">\u2713</span>' : "") + '</div>' +
-           '<div class="srBody"><div class="srName">' + esc(nm) + '</div>' +
+           '<div class="srBody"><div class="srName rc-' + rarityClass(nm) + '">' + esc(nm) + '</div>' +
            '<div class="srChips">' + chips + '</div></div></div>';
     });
     box.innerHTML = h;
@@ -1483,7 +1505,7 @@ var CYCLES={
       }
       var v = verdict(L, d.n);
       h += '<div class="v ' + v.cls + '">' + art(d, "") +
-           '<div class="who"><div class="nm">' + esc(d.n) + '</div>' +
+           '<div class="who"><div class="nm rc-' + rarityClass(d.n) + '">' + esc(d.n) + '</div>' +
            '<div class="rr r-' + d.r + '">' + d.r + '</div>' +
            '<div class="note">' + v.note + '</div></div>' +
            '<div class="tag">' + v.tag + '</div></div>';
@@ -1660,7 +1682,9 @@ var CYCLES={
   function openRarityPicker(name, viaLongPress){
     rpActiveName = name;
     var top = ownedTop(name);
-    document.getElementById("rpTitle").textContent = name;
+    var rpT = document.getElementById("rpTitle");
+    rpT.textContent = name;
+    rpT.className = "rc-" + rarityClass(name);
     var ap = appearances(name);
     var repRarity = top >= 0 ? RARITY_ORDER[top] : (ap[0] && ap[0].rarity);
     document.getElementById("rpArt").innerHTML = repRarity ? art({ n: name, r: repRarity }, "") : "";
