@@ -20,7 +20,7 @@
   --green:#3dff9a; --red:#ff3b47; --amber:#ffb020; --cyan:#45d7ff;
   --sell:#ffc233; --later:#ff4d4d; --keep:#3dff9a;
   --r-BASE:#c2cad6; --r-GOLD:#ffc233; --r-DIAMOND:#45d7ff;
-  --r-BESKAR:#dfe5ec; --r-GALACTIC:#e05cff; --r-STELLAR:#8ea2ff;
+  --r-BESKAR:#dfe5ec; --r-GALACTIC:#e05cff; --r-STELLAR:#ffe93b;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -277,7 +277,7 @@ section{margin-bottom:20px}
 .br-BASE{border-color:#3a4150} .br-GOLD{border-color:#7a5a12}
 .br-DIAMOND{border-color:#1a6c8c} .br-BESKAR{border-color:#6b7480}
 .br-GALACTIC{border-color:#7d2a99} .br-RAINBOW{border-color:#6a4a8a}
-.br-STELLAR{border-color:#3a4a8c}
+.br-STELLAR{border-color:#8a7a1a}
 
 /* ---- sell / keep ---- */
 .verdicts{display:flex;flex-direction:column;gap:7px}
@@ -391,7 +391,7 @@ details[open] summary::after{transform:rotate(180deg)}
    BESKAR = bright silver-white, GALACTIC = the lone magenta. */
 .cfx.r-BESKAR{color:#eef3fa;-webkit-text-fill-color:#eef3fa}
 .cfx.r-GALACTIC{color:#f24dff;-webkit-text-fill-color:#f24dff}
-.cfx.r-STELLAR{color:#8ea2ff;-webkit-text-fill-color:#8ea2ff}
+.cfx.r-STELLAR{color:#ffe93b;-webkit-text-fill-color:#ffe93b}
 .cfx.r-RAINBOW{
   background:linear-gradient(92deg,#ff6b6b,#ffcf4d,#5dff9e,#3fd0ff,#4d90ff);
   -webkit-background-clip:text;background-clip:text;
@@ -697,7 +697,8 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
     <h3 id="pkTitle">Which cycle are you on?</h3>
     <p class="pkSub">After a super rebirth, match what the game is asking you for at Rebirth&nbsp;1
-      against the sets below. Each set is unique, so the trio tells you the cycle.</p>
+      against the sets below. Most trios are unique; a couple of cycles share the same Rebirth&nbsp;1
+      lineup, so if two look identical, pick either and switch cycles later if the droids stop matching.</p>
     <div id="pkList"></div>
     <button class="pkCancel" id="pkCancel">Cancel</button>
   </div>
