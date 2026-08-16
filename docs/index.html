@@ -561,7 +561,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </svg>
     </button>
-    <button class="reset" id="reset">Reset to Rebirth 1</button>
+    <button class="reset" id="reset">Super Rebirth</button>
     <button class="searchToggle" id="searchToggle" aria-label="Search a droid" aria-expanded="false">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
            stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
@@ -705,8 +705,8 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 <div class="modal" id="picker" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
     <h3 id="pkTitle">Which cycle are you on?</h3>
-    <p class="pkSub">Pick the cycle you're now on. It switches to that cycle and resets it to
-      Rebirth&nbsp;1.</p>
+    <p class="pkSub">Pick the cycle you're now on. It switches to that cycle, resets it to
+      Rebirth&nbsp;1, and clears that cycle's owned droids.</p>
     <div id="pkList"></div>
     <button class="pkCancel" id="pkCancel">Cancel</button>
   </div>
@@ -1668,7 +1668,8 @@ var CYCLES={
   pkList.addEventListener("click", function(e){
     var b = e.target.closest(".pk"); if (!b) return;
     state.cycle = +b.dataset.c;
-    state.levels[state.cycle] = 1;      // only the chosen cycle is reset
+    state.levels[state.cycle] = 1;      // the chosen cycle restarts at Rebirth 1...
+    state.owned[state.cycle] = {};      // ...and a super rebirth clears its owned droids
     closePicker();
     render();
     window.scrollTo(0, 0);
