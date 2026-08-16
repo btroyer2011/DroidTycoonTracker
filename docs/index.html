@@ -74,7 +74,7 @@ header .lede{
 }
 
 /* ---- cycle pills ---- */
-.cycles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.cycles{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:12px}
 .cyc{
   appearance:none;border:2px solid var(--line);background:var(--panel);color:var(--dim);
   border-radius:10px;padding:9px 4px;font:700 12px/1.1 inherit;letter-spacing:.05em;
@@ -404,6 +404,22 @@ details[open] summary::after{transform:rotate(180deg)}
 }
 .cell.f-Y{border-color:var(--sell)} .cell.f-R{border-color:var(--later)}
 
+/* unknown droid (Cycle 5, not yet documented): a red "?" fills the art slot. Used on the
+   chart cells, the need/up-next tiles, the cycle picker, and the verdict cards. */
+.unkArt{
+  width:100%;aspect-ratio:212/162;display:grid;place-items:center;
+  background:repeating-linear-gradient(45deg,#120a0c,#120a0c 6px,#170c0e 6px,#170c0e 12px);
+  color:var(--red);font-weight:900;font-size:30px;line-height:1;
+}
+.cell.unk{border-color:#5a2530;cursor:default}
+.cell.unk .cn,.cell.unk .cr{color:var(--dim)}
+.tile.unk{border-color:#5a2530}
+.tile.unk .rar,.tile.unk .nm{color:var(--dim)}
+.v.unk{border-left-color:#5a2530}
+.v.unk .unkArt{width:54px;aspect-ratio:212/162;border-radius:7px;font-size:22px}
+.v.unk .tag{background:var(--panel2);color:var(--dim)}
+.pkT.unk .rar,.pkT.unk .nm{color:var(--dim)}
+
 /* ---- chips table ---- */
 table{width:100%;border-collapse:collapse;font-size:11px}
 th,td{border:1px solid var(--line);padding:5px 3px;text-align:center}
@@ -679,7 +695,8 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
     <h3 id="pkTitle">Which cycle are you on?</h3>
     <p class="pkSub">After a super rebirth, match what the game is asking you for at Rebirth&nbsp;1
-      against the four sets below. Each set is unique, so the trio tells you the cycle.</p>
+      against the sets below. Cycles 1&ndash;4 each have a unique trio; Cycle&nbsp;5 is new and its
+      Rebirth&nbsp;1 lineup isn't documented yet, so pick it if none of the others match.</p>
     <div id="pkList"></div>
     <button class="pkCancel" id="pkCancel">Cancel</button>
   </div>
@@ -1042,6 +1059,27 @@ var CYCLES={
 ],
 };
 
+// Cycle 5 was added to the game before its full droid list was documented. Only the rebirths
+// below are confirmed; every other cell is an unknown placeholder (u:1), drawn as a red "?".
+CYCLES[5] = (function(){
+  var U = function(){ return { n: "?", r: "?", u: 1 }; };
+  var rows = [];
+  for (var i = 0; i < 30; i++) rows.push([U(), U(), U()]);
+  var known = {
+    3:  [["R4", "BASE"], ["VECT-ARM", "BASE"], ["BDX EXPLORER", "GOLD"]],
+    4:  [["R9", "GOLD"], ["B1 BATTLE", "GOLD"], ["B1 SECURITY", "GOLD"]],
+    6:  [["GUNRUNNER", "BASE"], ["2BB", "DIAMOND"], ["BDX EXPLORER", "DIAMOND"]],
+    7:  [["ROLL-R", "DIAMOND"], ["R5", "DIAMOND"], ["R2", "GOLD"]],
+    8:  [["B2 SUPER", "GOLD"], ["R8", "DIAMOND"], ["B1 BATTLE", "DIAMOND"]],
+    9:  [["NAV-EX", "RAINBOW"], ["STRIKE-ORB", "GOLD"], ["AMP WALKER", "GOLD"]],
+    10: [["DRK-I PROBE", "BESKAR"], ["GROUNDMECH", "BASE"], ["TRAK-R", "BASE"]],
+    12: [["BAL-CORE", "RAINBOW"], ["GROUNDMECH", "GOLD"], ["TRAK-R", "GOLD"]]
+  };
+  Object.keys(known).forEach(function(lv){
+    rows[lv - 1] = known[lv].map(function(c){ return { n: c[0], r: c[1] }; });
+  });
+  return rows;
+})();
 
 (function(){
   "use strict";
@@ -1056,8 +1094,8 @@ var CYCLES={
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && s.levels && s.cycle) {
-        for (var c = 1; c <= 4; c++) s.levels[c] = clamp(s.levels[c] || 1);
-        s.cycle = Math.min(4, Math.max(1, s.cycle));
+        for (var c = 1; c <= 5; c++) s.levels[c] = clamp(s.levels[c] || 1);
+        s.cycle = Math.min(5, Math.max(1, s.cycle));
         if (!s.owned || typeof s.owned !== "object") s.owned = {};
         s.threshold = clampT(s.threshold);
         // owned used to be a boolean (1 = whole droid owned); it is now the rank of the
@@ -1069,7 +1107,7 @@ var CYCLES={
         return s;
       }
     } catch (e) {}
-    return { cycle: 1, levels: { 1:1, 2:1, 3:1, 4:1 }, owned: {}, ownedV: 2, threshold: THRESH_DEFAULT };
+    return { cycle: 1, levels: { 1:1, 2:1, 3:1, 4:1, 5:1 }, owned: {}, ownedV: 2, threshold: THRESH_DEFAULT };
   })();
 
   // rarity low -> high; a droid upgrades up this ladder, so owning it at one rank means you
@@ -1104,11 +1142,11 @@ var CYCLES={
     if (!obj.levels || typeof obj.levels !== "object") throw new Error("That code is missing rebirth-level data.");
     if (!(obj.cycle >= 1 && obj.cycle <= 4)) throw new Error("That code has an invalid cycle.");
 
-    var clean = { cycle: Math.min(4, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2, threshold: clampT(obj.threshold) };
-    for (var c = 1; c <= 4; c++) clean.levels[c] = clamp(obj.levels[c] || 1);
+    var clean = { cycle: Math.min(5, Math.max(1, parseInt(obj.cycle, 10) || 1)), levels: {}, owned: {}, ownedV: 2, threshold: clampT(obj.threshold) };
+    for (var c = 1; c <= 5; c++) clean.levels[c] = clamp(obj.levels[c] || 1);
     if (obj.owned && typeof obj.owned === "object") {
       for (var cy in obj.owned) {
-        if (!/^[1-4]$/.test(cy)) continue;
+        if (!/^[1-5]$/.test(cy)) continue;
         var src = obj.owned[cy], out = {};
         if (src && typeof src === "object") {
           for (var nm in src) {
@@ -1210,6 +1248,10 @@ var CYCLES={
   }
 
   function tile(d, ghost, level){
+    if (d.u) {
+      return '<div class="tile unk' + (ghost ? " ghost" : "") + '"><div class="unkArt">?</div>' +
+             '<div class="meta"><div class="rar">?</div><div class="nm">Unknown</div></div></div>';
+    }
     return '<div class="tile br-' + d.r + (ghost ? " ghost" : "") + '">' +
              ownBadge(level, d.n) + art(d, "") +
              '<div class="meta"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
@@ -1220,7 +1262,7 @@ var CYCLES={
   // references stay stable across renders.
   (function buildCycles(){
     var h = "";
-    for (var c = 1; c <= 4; c++) {
+    for (var c = 1; c <= 5; c++) {
       h += '<button class="cyc" data-c="' + c + '" aria-pressed="false">Cycle<b>' + c + '</b></button>';
     }
     document.getElementById("cycles").innerHTML = h;
@@ -1244,6 +1286,12 @@ var CYCLES={
            '</div>';
       for (var j = 0; j < 3; j++) {
         var d = r[i][j];
+        if (d.u) {
+          // droid not yet documented for this cycle - a red "?" placeholder, no ownership
+          h += '<div class="cell unk"><div class="cthumb"><div class="unkArt">?</div></div>' +
+               '<div class="cm"><div class="cr">?</div><div class="cn">Unknown</div></div></div>';
+          continue;
+        }
         // later rebirths in this cycle that also need this droid, and at what rarity
         var fut = appearances(d.n).filter(function(a){ return a.level > n; });
         var futHTML = "";
@@ -1286,7 +1334,9 @@ var CYCLES={
     var r = rows(), added = {}, names = [];
     for (var i = 0; i < 30; i++)
       for (var j = 0; j < 3; j++) {
-        var nm = r[i][j].n;
+        var cell = r[i][j];
+        if (cell.u) continue;               // skip not-yet-documented cells
+        var nm = cell.n;
         if (nm.indexOf(q) !== -1 && !added[nm]) { added[nm] = 1; names.push(nm); }
       }
     names.sort();
@@ -1393,7 +1443,16 @@ var CYCLES={
 
     h = "";
     for (i = 0; i < 3; i++) {
-      var d = cur[i], v = verdict(L, d.n);
+      var d = cur[i];
+      if (d.u) {
+        h += '<div class="v unk"><div class="unkArt">?</div>' +
+             '<div class="who"><div class="nm">Unknown</div>' +
+             '<div class="rr">?</div>' +
+             '<div class="note">Not documented yet for Cycle 5.</div></div>' +
+             '<div class="tag">?</div></div>';
+        continue;
+      }
+      var v = verdict(L, d.n);
       h += '<div class="v ' + v.cls + '">' + art(d, "") +
            '<div class="who"><div class="nm">' + esc(d.n) + '</div>' +
            '<div class="rr r-' + d.r + '">' + d.r + '</div>' +
@@ -1501,13 +1560,18 @@ var CYCLES={
 
   (function buildPicker(){
     var h = "";
-    for (var c = 1; c <= 4; c++) {
+    for (var c = 1; c <= 5; c++) {
       var row = CYCLES[c][0];
       h += '<button class="pk" data-c="' + c + '" aria-pressed="false">' +
              '<div class="pkHead"><span>Cycle ' + c + '</span>' +
              '<span class="cur" data-cur="' + c + '"></span></div><div class="pkTiles">';
       for (var j = 0; j < 3; j++) {
         var d = row[j];
+        if (d.u) {
+          h += '<div class="pkT unk"><div class="unkArt">?</div>' +
+               '<div class="pkM"><div class="rar">?</div><div class="nm">Unknown</div></div></div>';
+          continue;
+        }
         h += '<div class="pkT br-' + d.r + '">' + art(d, "") +
              '<div class="pkM"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
              '<div class="nm">' + esc(d.n) + '</div></div></div>';
@@ -1709,7 +1773,7 @@ var CYCLES={
     }
     document.getElementById("chips").innerHTML = h;
     document.getElementById("foot").innerHTML =
-      "Chart data: Droid Tycoon " + META.version + "<br>Money costs are identical in all four cycles.";
+      "Chart data: Droid Tycoon " + META.version + "<br>Money costs are identical in every cycle.";
   })();
 
   // ---- sticky stack offsets --------------------------------------------------------------
