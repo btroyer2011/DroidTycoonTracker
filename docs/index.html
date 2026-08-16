@@ -1086,7 +1086,6 @@ var CYCLES={
 // literal above; their Rebirths 31-35 (from the guide posters) are appended here, and Cycle 5
 // (documented 1-35) is defined in full below.
 (function extendCycles(){
-  var U  = function(){ return { n: "?", r: "?", u: 1 }; };
   var mk = function(cells){ return cells.map(function(c){ return { n: c[0], r: c[1] }; }); };
   var tail = {
     1: [
@@ -1119,8 +1118,10 @@ var CYCLES={
     ]
   };
   for (var c = 1; c <= 4; c++) {
+    // each cycle literal above holds Rebirths 1-30; appending 5 tail rows makes 35
+    if (window.console && console.assert) console.assert(CYCLES[c].length === 30,
+      "Cycle " + c + " should have 30 base rebirths, has " + CYCLES[c].length);
     tail[c].forEach(function(row){ CYCLES[c].push(row); });
-    while (CYCLES[c].length < 35) CYCLES[c].push([U(), U(), U()]);  // safety pad
   }
   CYCLES[5] = [
     mk([["ID10","BASE"],["MOUSE","BASE"],["GONK","BASE"]]),                       // 1
