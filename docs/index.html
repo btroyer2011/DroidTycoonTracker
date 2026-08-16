@@ -20,7 +20,7 @@
   --green:#3dff9a; --red:#ff3b47; --amber:#ffb020; --cyan:#45d7ff;
   --sell:#ffc233; --later:#ff4d4d; --keep:#3dff9a;
   --r-BASE:#c2cad6; --r-GOLD:#ffc233; --r-DIAMOND:#45d7ff;
-  --r-BESKAR:#dfe5ec; --r-GALACTIC:#e05cff;
+  --r-BESKAR:#dfe5ec; --r-GALACTIC:#e05cff; --r-STELLAR:#ffe93b;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -269,7 +269,7 @@ section{margin-bottom:20px}
 /* rarity colours */
 .r-BASE{color:var(--r-BASE)} .r-GOLD{color:var(--r-GOLD)}
 .r-DIAMOND{color:var(--r-DIAMOND)} .r-BESKAR{color:var(--r-BESKAR)}
-.r-GALACTIC{color:var(--r-GALACTIC)}
+.r-GALACTIC{color:var(--r-GALACTIC)} .r-STELLAR{color:var(--r-STELLAR)}
 .r-RAINBOW{
   background:linear-gradient(90deg,#ff4d4d,#ffc233,#3dff9a,#45d7ff,#c46bff);
   -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -277,6 +277,7 @@ section{margin-bottom:20px}
 .br-BASE{border-color:#3a4150} .br-GOLD{border-color:#7a5a12}
 .br-DIAMOND{border-color:#1a6c8c} .br-BESKAR{border-color:#6b7480}
 .br-GALACTIC{border-color:#7d2a99} .br-RAINBOW{border-color:#6a4a8a}
+.br-STELLAR{border-color:#8a7a1a}
 
 /* ---- sell / keep ---- */
 .verdicts{display:flex;flex-direction:column;gap:7px}
@@ -390,6 +391,7 @@ details[open] summary::after{transform:rotate(180deg)}
    BESKAR = bright silver-white, GALACTIC = the lone magenta. */
 .cfx.r-BESKAR{color:#eef3fa;-webkit-text-fill-color:#eef3fa}
 .cfx.r-GALACTIC{color:#f24dff;-webkit-text-fill-color:#f24dff}
+.cfx.r-STELLAR{color:#ffe93b;-webkit-text-fill-color:#ffe93b}
 .cfx.r-RAINBOW{
   background:linear-gradient(92deg,#ff6b6b,#ffcf4d,#5dff9e,#3fd0ff,#4d90ff);
   -webkit-background-clip:text;background-clip:text;
@@ -537,7 +539,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       <div class="k">Rebirth</div>
       <div class="n" id="lvlnum">1</div>
       <div class="cost" id="cost">10K</div>
-      <div class="of" id="of">1 of 30</div>
+      <div class="of" id="of">1 of 35</div>
     </div>
     <button class="step" id="up" aria-label="Next rebirth">+</button>
   </div>
@@ -594,7 +596,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   </details>
 
   <details id="chartbox">
-    <summary>Full chart &mdash; all 30 rebirths</summary>
+    <summary>Full chart &mdash; all 35 rebirths</summary>
     <div class="inner">
       <p class="key">Cell outline:
         <span class="sw" style="background:var(--sell)"></span>sell after this rebirth
@@ -695,8 +697,8 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
     <h3 id="pkTitle">Which cycle are you on?</h3>
     <p class="pkSub">After a super rebirth, match what the game is asking you for at Rebirth&nbsp;1
-      against the sets below. Cycles 1&ndash;4 each have a unique trio; Cycle&nbsp;5 is new and its
-      Rebirth&nbsp;1 lineup isn't documented yet, so pick it if none of the others match.</p>
+      against the sets below. Most trios are unique; a couple of cycles share the same Rebirth&nbsp;1
+      lineup, so if two look identical, pick either and switch cycles later if the droids stop matching.</p>
     <div id="pkList"></div>
     <button class="pkCancel" id="pkCancel">Cancel</button>
   </div>
@@ -918,7 +920,8 @@ window.SPRITES = {
 "VECT-ARM|RAINBOW":"data:image/jpeg;base64,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",
 };
 
-var COSTS=["10K","150K","975K","2.95M","5.35M","9.85M","14.5M","36M","89M","220M","550M","1.36B","3.4B","8.45B","21B","52B","130B","325B","810B","2T","3T","4.5T","6T","9T","13.5T","21T","32T","45T","68T","100T"];
+var COSTS=["10K","150K","975K","2.95M","5.35M","9.85M","14.5M","36M","89M","220M","550M","1.36B","3.4B","8.45B","21B","52B","130B","325B","810B","2T","3T","4.5T","6T","9T","13.5T","21T","32T","45T","68T","100T","150T","230T","345T","520T","778T"];
+var MAXLVL=35;
 var CRYSTALS={12:11,13:16,14:22,15:29,16:37,17:46,18:56,19:67,20:79,21:92,22:106,23:121,24:137,25:154,26:172,27:191,28:221,29:232,30:254};
 var META={version:"Update v1.23 (25 Jul 2026)"};
 var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic"],rows:[
@@ -1059,26 +1062,52 @@ var CYCLES={
 ],
 };
 
-// Cycle 5 was added to the game before its full droid list was documented. Only the rebirths
-// below are confirmed; every other cell is an unknown placeholder (u:1), drawn as a red "?".
-CYCLES[5] = (function(){
-  var U = function(){ return { n: "?", r: "?", u: 1 }; };
-  var rows = [];
-  for (var i = 0; i < 30; i++) rows.push([U(), U(), U()]);
-  var known = {
-    3:  [["R4", "BASE"], ["VECT-ARM", "BASE"], ["BDX EXPLORER", "GOLD"]],
-    4:  [["R9", "GOLD"], ["B1 BATTLE", "GOLD"], ["B1 SECURITY", "GOLD"]],
-    6:  [["GUNRUNNER", "BASE"], ["2BB", "DIAMOND"], ["BDX EXPLORER", "DIAMOND"]],
-    7:  [["ROLL-R", "DIAMOND"], ["R5", "DIAMOND"], ["R2", "GOLD"]],
-    8:  [["B2 SUPER", "GOLD"], ["R8", "DIAMOND"], ["B1 BATTLE", "DIAMOND"]],
-    9:  [["NAV-EX", "RAINBOW"], ["STRIKE-ORB", "GOLD"], ["AMP WALKER", "GOLD"]],
-    10: [["DRK-I PROBE", "BESKAR"], ["GROUNDMECH", "BASE"], ["TRAK-R", "BASE"]],
-    12: [["BAL-CORE", "RAINBOW"], ["GROUNDMECH", "GOLD"], ["TRAK-R", "GOLD"]]
-  };
-  Object.keys(known).forEach(function(lv){
-    rows[lv - 1] = known[lv].map(function(c){ return { n: c[0], r: c[1] }; });
-  });
-  return rows;
+// All five cycles now run to 35 rebirths. Cycle 5 is fully documented (poster, Rebirths 1-35).
+// Cycles 1-4's Rebirths 31-35 aren't documented yet, so they are padded with unknown "?"
+// placeholders (u:1) until that data arrives.
+(function extendCycles(){
+  var U  = function(){ return { n: "?", r: "?", u: 1 }; };
+  var mk = function(cells){ return cells.map(function(c){ return { n: c[0], r: c[1] }; }); };
+  for (var c = 1; c <= 4; c++) {
+    while (CYCLES[c].length < 35) CYCLES[c].push([U(), U(), U()]);
+  }
+  CYCLES[5] = [
+    mk([["ID10","BASE"],["MOUSE","BASE"],["GONK","BASE"]]),                       // 1
+    mk([["2BB","BASE"],["DRK-I PROBE","GOLD"],["ROLL-R","BASE"]]),                // 2
+    mk([["R4","BASE"],["VECT-ARM","BASE"],["BDX EXPLORER","GOLD"]]),              // 3
+    mk([["R9","GOLD"],["B1 BATTLE","GOLD"],["B1 SECURITY","GOLD"]]),              // 4
+    mk([["BAL-CORE","GOLD"],["R4","GOLD"],["R3","GOLD"]]),                        // 5
+    mk([["GUNRUNNER","BASE"],["2BB","DIAMOND"],["BDX EXPLORER","DIAMOND"]]),      // 6
+    mk([["ROLL-R","DIAMOND"],["R5","DIAMOND"],["R2","DIAMOND"]]),                 // 7
+    mk([["B2 SUPER","GOLD"],["R8","DIAMOND"],["B1 BATTLE","DIAMOND"]]),           // 8
+    mk([["NAV-EX","RAINBOW"],["STRIKE-ORB","GOLD"],["AMP WALKER","GOLD"]]),       // 9
+    mk([["DRK-I PROBE","BESKAR"],["GROUNDMECH","BASE"],["TRAK-R","BASE"]]),       // 10
+    mk([["B2 HEAVY","BASE"],["B2 SUPER","BASE"],["UTIL-TEC","BASE"]]),            // 11
+    mk([["BAL-CORE","RAINBOW"],["GROUNDMECH","GOLD"],["TRAK-R","GOLD"]]),         // 12
+    mk([["B2 SUPER","GOLD"],["B2 HEAVY","GOLD"],["R2","DIAMOND"]]),               // 13
+    mk([["GROUNDMECH","DIAMOND"],["TRAK-R","DIAMOND"],["UTIL-TEC","RAINBOW"]]),   // 14
+    mk([["B2 HEAVY","DIAMOND"],["B2 SUPER","DIAMOND"],["B2-RP","BASE"]]),         // 15
+    mk([["BB9","BASE"],["R7","GOLD"],["PROTO ROLLER","GOLD"]]),                   // 16
+    mk([["OPTI-STRK","BASE"],["CYCLO-GRAV","GOLD"],["MECHA DROID","GOLD"]]),      // 17
+    mk([["BB9","GOLD"],["B2-RP","GOLD"],["R7","DIAMOND"]]),                       // 18
+    mk([["OPTI-STRK","DIAMOND"],["CYCLO-GRAV","DIAMOND"],["MECHA DROID","RAINBOW"]]), // 19
+    mk([["B2-RP","RAINBOW"],["BB9","RAINBOW"],["R7","RAINBOW"]]),                 // 20
+    mk([["LO","BESKAR"],["STRIKE-ORB","BESKAR"],["HAUL-R","BESKAR"]]),            // 21
+    mk([["SEN-TRI","BESKAR"],["R6","BESKAR"],["GUNRUNNER","BESKAR"]]),            // 22
+    mk([["BB9","BESKAR"],["CYCLO-GRAV","BESKAR"],["B2-RP","BESKAR"]]),            // 23
+    mk([["MONO-WLKR","BESKAR"],["OPTI-STRK","BESKAR"],["MO-TRAK","BASE"]]),       // 24
+    mk([["MECHA DROID","BESKAR"],["RIC","BASE"],["TRI-TEK","GOLD"]]),             // 25
+    mk([["CYCLENS","GOLD"],["LEP","DIAMOND"],["SNOW MOUSE","RAINBOW"]]),          // 26
+    mk([["RIC-1200","DIAMOND"],["IG","RAINBOW"],["LOADLIFTER","BESKAR"]]),        // 27
+    mk([["RIC","RAINBOW"],["MO-TRAK","BESKAR"],["BB9","GALACTIC"]]),              // 28
+    mk([["IG","BESKAR"],["MECHA DROID","GALACTIC"],["OPTI-STRK","GALACTIC"]]),    // 29
+    mk([["R7","GALACTIC"],["LEP","BESKAR"],["CYCLENS","GALACTIC"]]),              // 30
+    mk([["AMP WALKER","STELLAR"],["OPTI-STRK","BESKAR"],["SNOW MOUSE","BESKAR"]]),// 31
+    mk([["LO","GALACTIC"],["TRAK-R","GALACTIC"],["DRFT-R","BESKAR"]]),            // 32
+    mk([["UTIL-TEC","STELLAR"],["R7","GALACTIC"],["TRI-TEK","GALACTIC"]]),        // 33
+    mk([["HAUL-R","STELLAR"],["LNG-SHOT","STELLAR"],["IG","GALACTIC"]]),          // 34
+    mk([["MECHA DROID","STELLAR"],["RIC-1200","STELLAR"],["MO-TRAK","STELLAR"]])  // 35
+  ];
 })();
 
 (function(){
@@ -1112,11 +1141,11 @@ CYCLES[5] = (function(){
 
   // rarity low -> high; a droid upgrades up this ladder, so owning it at one rank means you
   // already have every rank below it.
-  var RARITY_ORDER = ["BASE", "GOLD", "DIAMOND", "RAINBOW", "BESKAR", "GALACTIC"];
+  var RARITY_ORDER = ["BASE", "GOLD", "DIAMOND", "RAINBOW", "BESKAR", "GALACTIC", "STELLAR"];
   function rarityRank(x){ return RARITY_ORDER.indexOf(x); }
 
-  function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(30, Math.max(1, n)); }
-  function clampT(n){ n = parseInt(n, 10); if (isNaN(n)) n = THRESH_DEFAULT; return Math.min(30, Math.max(1, n)); }
+  function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(MAXLVL, Math.max(1, n)); }
+  function clampT(n){ n = parseInt(n, 10); if (isNaN(n)) n = THRESH_DEFAULT; return Math.min(MAXLVL, Math.max(1, n)); }
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   function lvl(){ return state.levels[state.cycle]; }
   function rows(){ return CYCLES[state.cycle]; }
@@ -1191,7 +1220,7 @@ CYCLES[5] = (function(){
   // next rebirth above `level` in this cycle that asks for `name` again
   function nextUse(level, name){
     var r = rows();
-    for (var i = level; i < 30; i++) {
+    for (var i = level; i < MAXLVL; i++) {
       for (var j = 0; j < 3; j++) if (r[i][j].n === name) return { level: i + 1, rarity: r[i][j].r };
     }
     return null;
@@ -1200,7 +1229,7 @@ CYCLES[5] = (function(){
   // earliest rebirth in this cycle that needs `name` (its acquisition point)
   function firstSeen(name){
     var r = rows();
-    for (var i = 0; i < 30; i++)
+    for (var i = 0; i < MAXLVL; i++)
       for (var j = 0; j < 3; j++) if (r[i][j].n === name) return i + 1;
     return null;
   }
@@ -1210,7 +1239,7 @@ CYCLES[5] = (function(){
   // every rebirth in this cycle that needs `name`, with the rarity asked for each time
   function appearances(name){
     var r = rows(), out = [];
-    for (var i = 0; i < 30; i++)
+    for (var i = 0; i < MAXLVL; i++)
       for (var j = 0; j < 3; j++) if (r[i][j].n === name) out.push({ level: i + 1, rarity: r[i][j].r });
     return out;
   }
@@ -1270,7 +1299,7 @@ CYCLES[5] = (function(){
 
   function renderChart(){
     var L = lvl(), r = rows(), h = "";
-    for (var i = 0; i < 30; i++) {
+    for (var i = 0; i < MAXLVL; i++) {
       var n = i + 1;
       h += '<div class="row' + (n === L ? " now" : "") + (n >= state.threshold ? " late" : "") + '"' +
            (n === L ? ' id="nowrow"' : "") + '>' +
@@ -1280,7 +1309,7 @@ CYCLES[5] = (function(){
                '<div class="chartstep">' +
                  '<button class="cst" data-d="-1"' + (L <= 1 ? ' disabled' : '') +
                    ' aria-label="Previous rebirth">\u2212</button>' +
-                 '<button class="cst" data-d="1"' + (L >= 30 ? ' disabled' : '') +
+                 '<button class="cst" data-d="1"' +  (L >= MAXLVL ? ' disabled' : '') +
                    ' aria-label="Next rebirth">+</button>' +
                '</div>' : '') +
            '</div>';
@@ -1332,7 +1361,7 @@ CYCLES[5] = (function(){
       return;
     }
     var r = rows(), added = {}, names = [];
-    for (var i = 0; i < 30; i++)
+    for (var i = 0; i < MAXLVL; i++)
       for (var j = 0; j < 3; j++) {
         var cell = r[i][j];
         if (cell.u) continue;               // skip not-yet-documented cells
@@ -1418,12 +1447,12 @@ CYCLES[5] = (function(){
     ln.textContent = L;
     ln.className = "n" + (L >= state.threshold ? " late" : "");
     document.getElementById("cost").textContent = COSTS[L - 1];
-    document.getElementById("of").textContent = L + " of 30";
+    document.getElementById("of").textContent = L + " of " + MAXLVL;
     var bar = document.getElementById("bar");
-    bar.style.width = (L / 30 * 100) + "%";
+    bar.style.width = (L / MAXLVL * 100) + "%";
     bar.className = L >= state.threshold ? "late" : "";
     document.getElementById("down").disabled = L <= 1;
-    document.getElementById("up").disabled = L >= 30;
+    document.getElementById("up").disabled = L >= MAXLVL;
 
     // reflect the current sell-early threshold everywhere it is shown
     var T = state.threshold;
@@ -1432,7 +1461,7 @@ CYCLES[5] = (function(){
       if (el) el.textContent = T;
     });
     document.getElementById("thDown").disabled = T <= 1;
-    document.getElementById("thUp").disabled = T >= 30;
+    document.getElementById("thUp").disabled = T >= MAXLVL;
 
     var needLabel = "Rebirth " + L + " \u2014 " + COSTS[L - 1];
     document.getElementById("curlv").textContent = needLabel;
@@ -1462,7 +1491,7 @@ CYCLES[5] = (function(){
     document.getElementById("verdicts").innerHTML = h;
 
     var nextEl = document.getElementById("next");
-    if (L >= 30) {
+    if (L >= MAXLVL) {
       document.getElementById("nextlv").textContent = "";
       nextEl.innerHTML = '<div class="done">Cycle ' + state.cycle + ' complete.' +
         '<span>Switch cycles above, or reset to 1 to run it again.</span></div>';
