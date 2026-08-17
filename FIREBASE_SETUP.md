@@ -73,9 +73,11 @@ the admin editor). Nothing else is reachable.
 
 ## 6. Make yourself an admin
 
-1. Open the live app (on GitHub Pages, once `docs/cloud.js` with your config is deployed) and
-   sign in with Google via **Settings → Account & sync → Sign in with Google**. (The "Account
-   & sync" section only appears once `docs/cloud.js` is configured.)
+1. Open the live app (on GitHub Pages, once `docs/cloud.js` with your config is deployed).
+   Scroll down the main page to the **Account & sync** section (it's its own collapsible
+   section alongside "Backup & restore" — not inside the gear-icon Settings popup) and click
+   **Sign in with Google**. (The "Account & sync" section only appears once `docs/cloud.js` is
+   configured.)
 2. In the Firebase console, go to **Authentication → Users** and copy the **User UID** next to
    the account you just signed in with.
 3. Go to **Firestore Database → Data**, click **Start collection**, name it `admins`.
@@ -89,7 +91,7 @@ The app already ships with the full current dataset built in (that's what it use
 something's published, and what it falls back to if the network is down). To seed Firestore
 with it:
 
-1. In the app, open **Settings → Account & sync → Game data (admin)**.
+1. In the app, open the **Account & sync** section and find **Game data (admin)** underneath it.
 2. Click **Load current** — this fills the text box with the currently-active dataset as JSON.
 3. Click **Validate** to confirm it's well-formed (it will be, since it just came from the app
    itself).
