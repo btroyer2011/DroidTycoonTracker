@@ -120,12 +120,20 @@ header .lede{
 }
 /* icon clusters flanking the reset button. Real grid columns rather than absolutely
    positioned overlays, so they can never overlap the reset button - it shrinks to fit
-   whatever width is left instead, however narrow the screen. */
-.rowSide{display:flex;align-items:center;gap:6px}
-.rowSide.rowLeft{justify-self:start}
-.rowSide.rowRight{justify-self:end}
+   whatever width is left instead, however narrow the screen. Both sides are a fixed 82px
+   (room for 2 icons: 38px + 6px gap + 38px) regardless of how many icons are actually
+   visible - e.g. the account icon only shows once cloud.js is configured, and the search
+   glass only shows below 600px - so the reset button stays centred on the row either way
+   instead of drifting toward whichever side currently has fewer icons. */
+.rowSide{display:flex;align-items:center;gap:6px;width:82px}
+.rowSide.rowLeft{justify-self:start;justify-content:flex-start}
+.rowSide.rowRight{justify-self:end;justify-content:flex-end}
 .reset{
-  justify-self:center;min-width:0;
+  /* justify-self:center sizes this to its content (not the full 1fr track) on screens wide
+     enough for that content to fit; max-width:100% caps it at the track's actual width once
+     the track shrinks below that on narrow screens, so it wraps to two lines there instead of
+     overflowing its track into the icon columns on either side. */
+  justify-self:center;min-width:0;max-width:100%;text-align:center;
   appearance:none;border:2px solid var(--line);background:transparent;color:var(--dim);
   border-radius:10px;padding:8px 16px;font:700 11px/1 inherit;letter-spacing:.14em;
   text-transform:uppercase;cursor:pointer;
