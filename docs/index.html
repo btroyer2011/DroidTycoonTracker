@@ -343,8 +343,12 @@ details[open] summary::after{transform:rotate(180deg)}
 .row.head{padding-top:8px}
 .row .lv{
   display:flex;flex-direction:column;justify-content:center;align-items:center;
-  background:var(--panel2);border-radius:7px;padding:4px 2px;
+  background:var(--panel2);border-radius:7px;padding:4px 2px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;
+  -webkit-user-select:none;user-select:none;
 }
+/* press-and-hold feedback on the level number, easing over the same 500ms as the hold timer */
+.row .lv.pressing{transition:transform 500ms ease;transform:scale(.9)}
 .row .lv b{font-size:16px;font-style:italic;color:var(--green);line-height:1}
 .row.late .lv b{color:var(--red)}
 .row .lv i{font-style:normal;font-size:9px;color:var(--dim);margin-top:2px}
@@ -676,6 +680,15 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     <p class="pkSub" id="icSummary"></p>
     <button class="icConfirm" id="icConfirm">Import and replace</button>
     <button class="pkCancel" id="icCancel">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" id="levelConfirm" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lcTitle">
+    <h3 id="lcTitle">Set current rebirth?</h3>
+    <p class="pkSub" id="lcSummary"></p>
+    <button class="icConfirm" id="lcConfirm">Set</button>
+    <button class="pkCancel" id="lcCancel">Cancel</button>
   </div>
 </div>
 
@@ -1370,7 +1383,7 @@ var CYCLES={
       var n = i + 1;
       h += '<div class="row' + (n === L ? " now" : "") + (n >= state.threshold ? " late" : "") + '"' +
            (n === L ? ' id="nowrow"' : "") + '>' +
-           '<div class="lv"><b>' + n + '</b><i>' + COSTS[i] + '</i>' +
+           '<div class="lv" data-lv="' + n + '" title="Press and hold to set as your current rebirth"><b>' + n + '</b><i>' + COSTS[i] + '</i>' +
              (CRYSTALS[n] ? '<span class="cry">\u25C6' + CRYSTALS[n] + '</span>' : '') +
              (n === L ?
                '<div class="chartstep">' +
@@ -1613,6 +1626,23 @@ var CYCLES={
 
   document.getElementById("chart").addEventListener("pointerdown", function(e){
     if (e.button !== undefined && e.button !== 0) return; // primary button / touch / pen only
+    // press-and-hold the level number to make that rebirth the current one (ignore presses that
+    // land on the +/- stepper buttons inside the current row's level cell)
+    var lv = e.target.closest(".lv");
+    if (lv && !e.target.closest(".cst")) {
+      lpCancel();
+      lpCell = lv;
+      lpStartX = e.clientX; lpStartY = e.clientY;
+      lv.classList.add("pressing");
+      var lvNum = +lv.dataset.lv;
+      lpTimer = setTimeout(function(){
+        lpTimer = null;
+        lv.classList.remove("pressing");
+        lpSuppressClickUntil = Date.now() + LP_GUARD_MS;
+        openLevelConfirm(lvNum);
+      }, LP_MS);
+      return;
+    }
     var cell = e.target.closest(".cell");
     if (!cell || !cell.dataset.nm) return;
     lpCancel();
@@ -1636,6 +1666,8 @@ var CYCLES={
   // desktop equivalent of press-and-hold: right-click opens the same picker instead of the
   // browser's native context menu
   document.getElementById("chart").addEventListener("contextmenu", function(e){
+    var lv = e.target.closest(".lv");
+    if (lv && !e.target.closest(".cst")) { e.preventDefault(); lpCancel(); openLevelConfirm(+lv.dataset.lv); return; }
     var cell = e.target.closest(".cell");
     if (!cell || !cell.dataset.nm) return;
     e.preventDefault();
@@ -1714,6 +1746,7 @@ var CYCLES={
     if (!settings.hidden) closeSettings();
     if (!rarityPicker.hidden) closeRarityPicker();
     if (!importConfirm.hidden) closeImportConfirm();
+    if (!levelConfirm.hidden) closeLevelConfirm();
   });
 
   // ---- rarity picker (opened by press-and-hold / right-click on a chart tile) -----------
@@ -1847,6 +1880,30 @@ var CYCLES={
     setStatus("bkImportStatus", "Progress imported.", "ok");
   });
   importConfirm.addEventListener("click", function(e){ if (e.target === importConfirm) closeImportConfirm(); });
+
+  // ---- set-current-rebirth confirm (press-and-hold a level number in the full chart) --------
+  var levelConfirm = document.getElementById("levelConfirm"), lcPending = null;
+  function openLevelConfirm(n){
+    lcPending = n;
+    document.getElementById("lcSummary").textContent =
+      "Move your current rebirth for Cycle " + state.cycle + " to Rebirth " + n +
+      " (" + COSTS[n - 1] + ").";
+    document.getElementById("lcConfirm").textContent = "Set to Rebirth " + n;
+    levelConfirm.hidden = false;
+    document.body.style.overflow = "hidden";
+    document.getElementById("lcConfirm").focus();
+  }
+  function closeLevelConfirm(){
+    levelConfirm.hidden = true;
+    document.body.style.overflow = "";
+    lcPending = null;
+  }
+  document.getElementById("lcCancel").addEventListener("click", closeLevelConfirm);
+  document.getElementById("lcConfirm").addEventListener("click", function(){
+    if (lcPending != null) setLevel(lcPending);
+    closeLevelConfirm();
+  });
+  levelConfirm.addEventListener("click", function(e){ if (e.target === levelConfirm) closeLevelConfirm(); });
 
   // reference table
   (function(){
