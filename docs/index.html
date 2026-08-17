@@ -262,28 +262,6 @@ h2{
 h2 em{font-style:normal;color:var(--ink);letter-spacing:.06em}
 section{margin-bottom:20px}
 
-/* ---- droid tiles ---- */
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.tile{
-  position:relative;
-  background:#000;border:2px solid var(--line);border-radius:12px;overflow:hidden;
-  display:flex;flex-direction:column;
-}
-.tile img{width:100%;display:block;aspect-ratio:212/162;object-fit:cover;background:#000}
-.tile .meta{padding:5px 6px 7px;background:var(--panel)}
-.tile .rar{font-size:10px;font-weight:800;letter-spacing:.09em}
-.tile .nm{font-size:12px;font-weight:700;line-height:1.15;margin-top:1px;word-break:break-word}
-.tile.ghost{opacity:.62}
-
-/* NEW = first rebirth this cycle that needs the droid (a fresh pull);
-   OWNED = it appeared earlier, so you already have it and this rebirth upgrades it. */
-.badge{
-  position:absolute;top:5px;left:5px;z-index:2;
-  font-size:9px;font-weight:800;letter-spacing:.03em;line-height:1;
-  padding:3px 5px;border-radius:6px;
-}
-.badge.new{background:var(--cyan);color:#052734}
-.badge.seen{background:rgba(4,4,8,.8);color:#cfd3e0;border:1px solid var(--line)}
 .noimg{
   width:100%;aspect-ratio:212/162;display:grid;place-items:center;
   color:var(--dim);font-size:10px;letter-spacing:.1em;background:#0c0c12;
@@ -305,41 +283,6 @@ section{margin-bottom:20px}
   background:linear-gradient(90deg,#ff4d4d,#ffc233,#3dff9a,#45d7ff,#c46bff);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
-.br-BASE{border-color:#3a4150} .br-GOLD{border-color:#7a5a12}
-.br-DIAMOND{border-color:#1a6c8c} .br-BESKAR{border-color:#6b7480}
-.br-GALACTIC{border-color:#7d2a99} .br-RAINBOW{border-color:#6a4a8a}
-.br-STELLAR{border-color:#8a7a1a}
-
-/* ---- sell / keep ---- */
-.verdicts{display:flex;flex-direction:column;gap:7px}
-.v{
-  display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:center;
-  background:var(--panel);border:2px solid var(--line);border-left-width:5px;
-  border-radius:11px;padding:7px 10px 7px 7px;
-}
-.v img{width:54px;border-radius:7px;display:block;aspect-ratio:212/162;object-fit:cover;background:#000}
-.v .who{min-width:0}
-.v .who .nm{font-size:13px;font-weight:700;line-height:1.2}
-.v .who .rr{font-size:10px;font-weight:800;letter-spacing:.09em}
-.v .who .note{font-size:11px;color:var(--dim);margin-top:2px;line-height:1.25}
-.v .tag{
-  font-size:11px;font-weight:800;letter-spacing:.1em;padding:5px 9px;
-  border-radius:7px;white-space:nowrap;
-}
-.v.sell{border-left-color:var(--sell)}
-.v.sell .tag{background:rgba(255,194,51,.14);color:var(--sell)}
-.v.later{border-left-color:var(--later)}
-.v.later .tag{background:rgba(255,77,77,.16);color:var(--later)}
-.v.keep{border-left-color:var(--keep)}
-.v.keep .tag{background:rgba(61,255,154,.13);color:var(--keep)}
-
-/* ---- done state ---- */
-.done{
-  background:var(--panel);border:2px dashed #4a3a12;border-radius:12px;
-  padding:18px;text-align:center;color:var(--amber);font-weight:700;font-size:13px;
-}
-.done span{display:block;color:var(--dim);font-weight:400;font-size:12px;margin-top:5px}
-
 /* ---- collapsibles ---- */
 details{background:var(--panel);border:2px solid var(--line);border-radius:12px;margin-bottom:12px}
 summary{
@@ -442,7 +385,7 @@ details[open] summary::after{transform:rotate(180deg)}
 .cell.f-Y{border-color:var(--sell)} .cell.f-R{border-color:var(--later)}
 
 /* unknown droid (Cycle 5, not yet documented): a red "?" fills the art slot. Used on the
-   chart cells, the need/up-next tiles, the cycle picker, and the verdict cards. */
+   chart cells and the cycle picker. */
 .unkArt{
   width:100%;aspect-ratio:212/162;display:grid;place-items:center;
   background:repeating-linear-gradient(45deg,#120a0c,#120a0c 6px,#170c0e 6px,#170c0e 12px);
@@ -450,11 +393,6 @@ details[open] summary::after{transform:rotate(180deg)}
 }
 .cell.unk{border-color:#5a2530;cursor:default}
 .cell.unk .cn,.cell.unk .cr{color:var(--dim)}
-.tile.unk{border-color:#5a2530}
-.tile.unk .rar,.tile.unk .nm{color:var(--dim)}
-.v.unk{border-left-color:#5a2530}
-.v.unk .unkArt{width:54px;aspect-ratio:212/162;border-radius:7px;font-size:22px}
-.v.unk .tag{background:var(--panel2);color:var(--dim)}
 .pkT.unk .rar,.pkT.unk .nm{color:var(--dim)}
 
 /* ---- chips table ---- */
