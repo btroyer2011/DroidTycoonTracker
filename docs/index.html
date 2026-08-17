@@ -620,26 +620,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     needs a droid &mdash; a fresh pull. Later entries (<b>&#8634;</b>) upgrade the one you already own.
     Tap a rarity to mark it <b style="color:var(--green)">&#10003; owned</b>.</p>
 
-  <details id="needbox">
-    <summary>This rebirth <em id="needSum">Rebirth 1</em></summary>
-    <div class="inner">
-      <section>
-        <h2>You need now <em id="curlv">Rebirth 1</em></h2>
-        <div class="tiles" id="current"></div>
-      </section>
-
-      <section>
-        <h2>Sell or keep <em>after this rebirth</em></h2>
-        <div class="verdicts" id="verdicts"></div>
-      </section>
-
-      <section>
-        <h2>Up next <em id="nextlv">Rebirth 2</em></h2>
-        <div id="next"></div>
-      </section>
-    </div>
-  </details>
-
   <details id="chartbox">
     <summary>Full chart &mdash; all 35 rebirths</summary>
     <div class="inner">
@@ -1523,22 +1503,6 @@ var CYCLES={
     return out;
   }
 
-  function ownBadge(level, name){
-    var first = firstSeen(name);
-    if (first === level) return '<span class="badge new">\u2726 NEW</span>';
-    return '<span class="badge seen" title="First needed at Rebirth ' + first +
-           '">\u21ba R' + first + '</span>';
-  }
-
-  function verdict(level, name){
-    var nx = nextUse(level, name), T = state.threshold;
-    if (!nx) return { cls:"sell",  tag:"SELL", note:"Not required again this cycle." };
-    var at = "Rebirth " + nx.level + " \u00b7 " + nx.rarity;
-    if (level < T && nx.level >= T)
-      return { cls:"later", tag:"SELL", note:"Safe to sell \u2014 but needed again at " + at + "." };
-    return { cls:"keep", tag:"KEEP", note:"Needed again at " + at + "." };
-  }
-
   // Chart-cell outline for owning `name` at rebirth `level`, honouring the sell-early
   // threshold: "R" (red) = won't be needed again until the threshold+ block, so it's safe to
   // sell now and re-pull later; "Y" = never needed again; "-" = needed again sooner, keep it.
@@ -1553,17 +1517,6 @@ var CYCLES={
     var src = S[d.n + "|" + d.r];
     return src ? '<img class="' + cls + '" src="' + src + '" alt="' + esc(d.n) + '">'
                : '<div class="noimg">' + esc(d.r) + '</div>';
-  }
-
-  function tile(d, ghost, level){
-    if (d.u) {
-      return '<div class="tile unk' + (ghost ? " ghost" : "") + '"><div class="unkArt">?</div>' +
-             '<div class="meta"><div class="rar">?</div><div class="nm">Unknown</div></div></div>';
-    }
-    return '<div class="tile br-' + d.r + (ghost ? " ghost" : "") + '">' +
-             ownBadge(level, d.n) + art(d, "") +
-             '<div class="meta"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
-             '<div class="nm rc-' + rarityClass(d.n) + '">' + esc(d.n) + '</div></div></div>';
   }
 
   // The cycle pills are built once and only their pressed state changes, so element
@@ -1714,7 +1667,7 @@ var CYCLES={
   searchInput.addEventListener("blur", collapseSearchIfEmpty);
 
   function render(){
-    var L = lvl(), r = rows(), i;
+    var L = lvl();
 
     document.getElementById("bkExport").value = exportCode();
 
@@ -1741,46 +1694,6 @@ var CYCLES={
     });
     document.getElementById("thDown").disabled = T <= 1;
     document.getElementById("thUp").disabled = T >= MAXLVL;
-
-    var needLabel = "Rebirth " + L + " \u2014 " + COSTS[L - 1];
-    document.getElementById("curlv").textContent = needLabel;
-    document.getElementById("needSum").textContent = needLabel;
-    var cur = r[L - 1], h = "";
-    for (i = 0; i < 3; i++) h += tile(cur[i], false, L);
-    document.getElementById("current").innerHTML = h;
-
-    h = "";
-    for (i = 0; i < 3; i++) {
-      var d = cur[i];
-      if (d.u) {
-        h += '<div class="v unk"><div class="unkArt">?</div>' +
-             '<div class="who"><div class="nm">Unknown</div>' +
-             '<div class="rr">?</div>' +
-             '<div class="note">Not documented yet for Cycle ' + state.cycle + '.</div></div>' +
-             '<div class="tag">?</div></div>';
-        continue;
-      }
-      var v = verdict(L, d.n);
-      h += '<div class="v ' + v.cls + '">' + art(d, "") +
-           '<div class="who"><div class="nm rc-' + rarityClass(d.n) + '">' + esc(d.n) + '</div>' +
-           '<div class="rr r-' + d.r + '">' + d.r + '</div>' +
-           '<div class="note">' + v.note + '</div></div>' +
-           '<div class="tag">' + v.tag + '</div></div>';
-    }
-    document.getElementById("verdicts").innerHTML = h;
-
-    var nextEl = document.getElementById("next");
-    if (L >= MAXLVL) {
-      document.getElementById("nextlv").textContent = "";
-      nextEl.innerHTML = '<div class="done">Cycle ' + state.cycle + ' complete.' +
-        '<span>Switch cycles above, or reset to 1 to run it again.</span></div>';
-    } else {
-      document.getElementById("nextlv").textContent = "Rebirth " + (L + 1) + " \u2014 " + COSTS[L];
-      var nx = r[L];
-      h = '<div class="tiles">';
-      for (i = 0; i < 3; i++) h += tile(nx[i], true, L + 1);
-      nextEl.innerHTML = h + "</div>";
-    }
 
     renderChart();
     renderSearch();
