@@ -189,11 +189,23 @@ header .lede{
 }
 .modal[hidden]{display:none}
 .sheet{
+  position:relative;
   background:var(--panel);border:2px solid var(--line);border-radius:16px;
   width:100%;max-width:600px;max-height:94vh;overflow-y:auto;
   padding:16px 12px calc(14px + env(safe-area-inset-bottom,0px));
 }
-.sheet h3{margin:0 0 4px;font-size:15px;font-weight:800;text-align:center}
+.sheet h3{margin:0 0 4px;padding:0 34px;font-size:15px;font-weight:800;text-align:center}
+/* always-visible close button for the longer sheets (Settings, legend, account), which also
+   have a sticky "Done" button at the bottom - but that can end up hidden behind the browser's
+   own UI on some phones once the sheet is tall enough to scroll, so this gives an escape hatch
+   that's visible the moment the sheet opens, with no scrolling needed to find it. */
+.sheetClose{
+  position:absolute;top:10px;right:10px;z-index:1;
+  appearance:none;cursor:pointer;width:30px;height:30px;padding:0;
+  border:2px solid var(--line);border-radius:50%;background:var(--panel2);color:var(--dim);
+  font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.sheetClose:active{background:#20202e}
 .sheet .pkSub{
   margin:0 0 14px;font-size:12px;color:var(--dim);text-align:center;line-height:1.45;
 }
@@ -636,6 +648,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 
 <div class="modal" id="settings" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="stTitle">
+    <button class="sheetClose" aria-label="Close">&times;</button>
     <h3 id="stTitle">Settings</h3>
     <p class="pkSub">Choose when a droid you don't currently need counts as
       &ldquo;sell&nbsp;early.&rdquo;</p>
@@ -659,6 +672,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 
 <div class="modal" id="legend" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
+    <button class="sheetClose" aria-label="Close">&times;</button>
     <h3 id="lgTitle">Upgrade chip costs &amp; legend</h3>
     <p class="key">Cell outline:
       <span class="sw" style="background:var(--sell)"></span>sell after this rebirth
@@ -689,6 +703,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 
 <div class="modal" id="account" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle">
+    <button class="sheetClose" aria-label="Close">&times;</button>
     <h3 id="acctTitle">Account &amp; sync</h3>
     <p class="key">Sign in to keep your progress in sync across every device, updated live as
       you play &mdash; on top of the on-device backup above, not instead of it.</p>
@@ -1805,6 +1820,16 @@ var CYCLES={
   document.getElementById("legendToggle").addEventListener("click", openLegend);
   document.getElementById("legendClose").addEventListener("click", closeLegend);
   legend.addEventListener("click", function(e){ if (e.target === legend) closeLegend(); });
+
+  // the corner "x" on the longer sheets (Settings, legend, account) - reuses each modal's own
+  // click-the-backdrop-to-close handler above/below by dispatching a plain click straight at
+  // the modal element itself, exactly as if the backdrop had been tapped.
+  document.addEventListener("click", function(e){
+    var x = e.target.closest(".sheetClose");
+    if (!x) return;
+    var modalEl = x.closest(".modal");
+    if (modalEl) modalEl.click();
+  });
 
   pkList.addEventListener("click", function(e){
     var b = e.target.closest(".pk"); if (!b) return;
