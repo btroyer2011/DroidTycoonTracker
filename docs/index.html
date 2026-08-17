@@ -142,6 +142,14 @@ header .lede{
   display:flex;align-items:center;justify-content:center;
 }
 .cogToggle:active{background:var(--panel2)}
+/* legend icon: sits immediately right of the settings cog, left of the reset button. */
+.legendToggle{
+  position:absolute;left:46px;top:50%;transform:translateY(-50%);
+  appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
+  border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
+  display:flex;align-items:center;justify-content:center;
+}
+.legendToggle:active{background:var(--panel2)}
 /* account icon: sits at the far right of the reset row, right of the search glass on mobile.
    Hidden until cloud.js reports Firebase is configured.
    A small dot marks whether the signed-in state is on. */
@@ -524,6 +532,14 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </svg>
     </button>
+    <button class="legendToggle" id="legendToggle" aria-label="Upgrade chip costs & legend" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+    </button>
     <button class="reset" id="reset">Super Rebirth</button>
     <button class="searchToggle" id="searchToggle" aria-label="Search a droid" aria-expanded="false">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
@@ -557,7 +573,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     needs a droid &mdash; a fresh pull. Later entries (<b>&#8634;</b>) upgrade the one you already own.
     Tap a rarity to mark it <b style="color:var(--green)">&#10003; owned</b>.</p>
 
-  <details id="chartbox">
+  <details id="chartbox" open>
     <summary>Full chart &mdash; all 35 rebirths</summary>
     <div class="inner">
       <p class="key">Cell outline:
@@ -575,21 +591,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       <p class="key" style="margin-top:2px">Press and hold a tile (or right-click on desktop) to
         pick the exact rarity you own from a list &mdash; handy when it isn't the tile on screen.</p>
       <div class="chart" id="chart"></div>
-    </div>
-  </details>
-
-  <details>
-    <summary>Upgrade chip costs &amp; legend</summary>
-    <div class="inner">
-      <table id="chips"></table>
-      <div class="legend">
-        <p><span class="sw" style="background:var(--sell)"></span><b>SELL</b> &mdash; not required again anywhere in this cycle.</p>
-        <p><span class="sw" style="background:var(--later)"></span><b>SELL, but needed again</b> &mdash; safe to sell now, but the chart asks for it again at Rebirth&nbsp;<b id="lgThresh">21</b> or later. Adjust this cutoff with the settings <span aria-hidden="true">&#9881;</span> cog.</p>
-        <p><span class="sw" style="background:var(--keep)"></span><b>KEEP</b> &mdash; required again before Rebirth&nbsp;<b id="lgThresh2">21</b>, so hold on to it.</p>
-        <p><b style="color:var(--cyan)">&#10022; NEW</b> &mdash; the first rebirth this cycle that needs a droid: a fresh pull or build. On the chart it shows as a cyan dot.</p>
-        <p><b style="color:#cfd3e0">&#8634; R<i>n</i></b> &mdash; you were already asked for this droid at Rebirth <i>n</i>, so you should own it &mdash; this rebirth just upgrades its rarity.</p>
-        <p>Verdicts are worked out from the chart itself, not copied from the poster banners, so they stay correct at whatever rebirth you are on.</p>
-      </div>
     </div>
   </details>
 
@@ -661,6 +662,22 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       outline, so keep it. In the full chart, rebirth numbers from <b id="thN3">21</b> on are
       shown in red to mark the block.</p>
     <button class="pkCancel" id="stClose">Done</button>
+  </div>
+</div>
+
+<div class="modal" id="legend" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
+    <h3 id="lgTitle">Upgrade chip costs &amp; legend</h3>
+    <table id="chips"></table>
+    <div class="legend">
+      <p><span class="sw" style="background:var(--sell)"></span><b>SELL</b> &mdash; not required again anywhere in this cycle.</p>
+      <p><span class="sw" style="background:var(--later)"></span><b>SELL, but needed again</b> &mdash; safe to sell now, but the chart asks for it again at Rebirth&nbsp;<b id="lgThresh">21</b> or later. Adjust this cutoff with the settings <span aria-hidden="true">&#9881;</span> cog.</p>
+      <p><span class="sw" style="background:var(--keep)"></span><b>KEEP</b> &mdash; required again before Rebirth&nbsp;<b id="lgThresh2">21</b>, so hold on to it.</p>
+      <p><b style="color:var(--cyan)">&#10022; NEW</b> &mdash; the first rebirth this cycle that needs a droid: a fresh pull or build. On the chart it shows as a cyan dot.</p>
+      <p><b style="color:#cfd3e0">&#8634; R<i>n</i></b> &mdash; you were already asked for this droid at Rebirth <i>n</i>, so you should own it &mdash; this rebirth just upgrades its rarity.</p>
+      <p>Verdicts are worked out from the chart itself, not copied from the poster banners, so they stay correct at whatever rebirth you are on.</p>
+    </div>
+    <button class="pkCancel" id="legendClose">Done</button>
   </div>
 </div>
 
@@ -1774,6 +1791,15 @@ var CYCLES={
   document.getElementById("thDown").addEventListener("click", function(){ setThreshold(state.threshold - 1); });
   settings.addEventListener("click", function(e){ if (e.target === settings) closeSettings(); });
 
+  // ---- legend (upgrade chip costs & the chart's colour key) ---------------------------
+  var legend = document.getElementById("legend");
+  function openLegend(){ legend.hidden = false; document.body.style.overflow = "hidden";
+    document.getElementById("legendClose").focus(); }
+  function closeLegend(){ legend.hidden = true; document.body.style.overflow = ""; }
+  document.getElementById("legendToggle").addEventListener("click", openLegend);
+  document.getElementById("legendClose").addEventListener("click", closeLegend);
+  legend.addEventListener("click", function(e){ if (e.target === legend) closeLegend(); });
+
   pkList.addEventListener("click", function(e){
     var b = e.target.closest(".pk"); if (!b) return;
     state.cycle = +b.dataset.c;
@@ -1793,6 +1819,7 @@ var CYCLES={
     if (!importConfirm.hidden) closeImportConfirm();
     if (!levelConfirm.hidden) closeLevelConfirm();
     if (!account.hidden) closeAccount();
+    if (!legend.hidden) closeLegend();
   });
 
   // ---- rarity picker (opened by press-and-hold / right-click on a chart tile) -----------
