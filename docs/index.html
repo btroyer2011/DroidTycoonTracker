@@ -194,7 +194,10 @@ header .lede{
   width:100%;max-width:600px;max-height:94vh;overflow-y:auto;
   padding:16px 12px calc(14px + env(safe-area-inset-bottom,0px));
 }
-.sheet h3{margin:0 0 4px;padding:0 34px;font-size:15px;font-weight:800;text-align:center}
+.sheet h3{margin:0 0 4px;font-size:15px;font-weight:800;text-align:center}
+/* only the sheets with a .sheetClose need horizontal clearance for it - other .sheet h3s
+   (the rarity picker's droid-name header, confirm-dialog titles) are unaffected */
+#settings h3,#legend h3,#account h3{padding:0 34px}
 /* always-visible close button for the longer sheets (Settings, legend, account), which also
    have a sticky "Done" button at the bottom - but that can end up hidden behind the browser's
    own UI on some phones once the sheet is tall enough to scroll, so this gives an escape hatch
