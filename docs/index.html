@@ -262,28 +262,6 @@ h2{
 h2 em{font-style:normal;color:var(--ink);letter-spacing:.06em}
 section{margin-bottom:20px}
 
-/* ---- droid tiles ---- */
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.tile{
-  position:relative;
-  background:#000;border:2px solid var(--line);border-radius:12px;overflow:hidden;
-  display:flex;flex-direction:column;
-}
-.tile img{width:100%;display:block;aspect-ratio:212/162;object-fit:cover;background:#000}
-.tile .meta{padding:5px 6px 7px;background:var(--panel)}
-.tile .rar{font-size:10px;font-weight:800;letter-spacing:.09em}
-.tile .nm{font-size:12px;font-weight:700;line-height:1.15;margin-top:1px;word-break:break-word}
-.tile.ghost{opacity:.62}
-
-/* NEW = first rebirth this cycle that needs the droid (a fresh pull);
-   OWNED = it appeared earlier, so you already have it and this rebirth upgrades it. */
-.badge{
-  position:absolute;top:5px;left:5px;z-index:2;
-  font-size:9px;font-weight:800;letter-spacing:.03em;line-height:1;
-  padding:3px 5px;border-radius:6px;
-}
-.badge.new{background:var(--cyan);color:#052734}
-.badge.seen{background:rgba(4,4,8,.8);color:#cfd3e0;border:1px solid var(--line)}
 .noimg{
   width:100%;aspect-ratio:212/162;display:grid;place-items:center;
   color:var(--dim);font-size:10px;letter-spacing:.1em;background:#0c0c12;
@@ -305,41 +283,6 @@ section{margin-bottom:20px}
   background:linear-gradient(90deg,#ff4d4d,#ffc233,#3dff9a,#45d7ff,#c46bff);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
-.br-BASE{border-color:#3a4150} .br-GOLD{border-color:#7a5a12}
-.br-DIAMOND{border-color:#1a6c8c} .br-BESKAR{border-color:#6b7480}
-.br-GALACTIC{border-color:#7d2a99} .br-RAINBOW{border-color:#6a4a8a}
-.br-STELLAR{border-color:#8a7a1a}
-
-/* ---- sell / keep ---- */
-.verdicts{display:flex;flex-direction:column;gap:7px}
-.v{
-  display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:center;
-  background:var(--panel);border:2px solid var(--line);border-left-width:5px;
-  border-radius:11px;padding:7px 10px 7px 7px;
-}
-.v img{width:54px;border-radius:7px;display:block;aspect-ratio:212/162;object-fit:cover;background:#000}
-.v .who{min-width:0}
-.v .who .nm{font-size:13px;font-weight:700;line-height:1.2}
-.v .who .rr{font-size:10px;font-weight:800;letter-spacing:.09em}
-.v .who .note{font-size:11px;color:var(--dim);margin-top:2px;line-height:1.25}
-.v .tag{
-  font-size:11px;font-weight:800;letter-spacing:.1em;padding:5px 9px;
-  border-radius:7px;white-space:nowrap;
-}
-.v.sell{border-left-color:var(--sell)}
-.v.sell .tag{background:rgba(255,194,51,.14);color:var(--sell)}
-.v.later{border-left-color:var(--later)}
-.v.later .tag{background:rgba(255,77,77,.16);color:var(--later)}
-.v.keep{border-left-color:var(--keep)}
-.v.keep .tag{background:rgba(61,255,154,.13);color:var(--keep)}
-
-/* ---- done state ---- */
-.done{
-  background:var(--panel);border:2px dashed #4a3a12;border-radius:12px;
-  padding:18px;text-align:center;color:var(--amber);font-weight:700;font-size:13px;
-}
-.done span{display:block;color:var(--dim);font-weight:400;font-size:12px;margin-top:5px}
-
 /* ---- collapsibles ---- */
 details{background:var(--panel);border:2px solid var(--line);border-radius:12px;margin-bottom:12px}
 summary{
@@ -441,8 +384,7 @@ details[open] summary::after{transform:rotate(180deg)}
 }
 .cell.f-Y{border-color:var(--sell)} .cell.f-R{border-color:var(--later)}
 
-/* unknown droid (Cycle 5, not yet documented): a red "?" fills the art slot. Used on the
-   chart cells, the need/up-next tiles, the cycle picker, and the verdict cards. */
+/* unknown droid (Cycle 5, not yet documented): a red "?" fills the art slot on chart cells. */
 .unkArt{
   width:100%;aspect-ratio:212/162;display:grid;place-items:center;
   background:repeating-linear-gradient(45deg,#120a0c,#120a0c 6px,#170c0e 6px,#170c0e 12px);
@@ -450,11 +392,6 @@ details[open] summary::after{transform:rotate(180deg)}
 }
 .cell.unk{border-color:#5a2530;cursor:default}
 .cell.unk .cn,.cell.unk .cr{color:var(--dim)}
-.tile.unk{border-color:#5a2530}
-.tile.unk .rar,.tile.unk .nm{color:var(--dim)}
-.v.unk{border-left-color:#5a2530}
-.v.unk .unkArt{width:54px;aspect-ratio:212/162;border-radius:7px;font-size:22px}
-.v.unk .tag{background:var(--panel2);color:var(--dim)}
 .pkT.unk .rar,.pkT.unk .nm{color:var(--dim)}
 
 /* ---- chips table ---- */
@@ -619,26 +556,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <p class="srNote"><b style="color:var(--cyan)">&#10022; NEW</b> marks the first rebirth that
     needs a droid &mdash; a fresh pull. Later entries (<b>&#8634;</b>) upgrade the one you already own.
     Tap a rarity to mark it <b style="color:var(--green)">&#10003; owned</b>.</p>
-
-  <details id="needbox">
-    <summary>This rebirth <em id="needSum">Rebirth 1</em></summary>
-    <div class="inner">
-      <section>
-        <h2>You need now <em id="curlv">Rebirth 1</em></h2>
-        <div class="tiles" id="current"></div>
-      </section>
-
-      <section>
-        <h2>Sell or keep <em>after this rebirth</em></h2>
-        <div class="verdicts" id="verdicts"></div>
-      </section>
-
-      <section>
-        <h2>Up next <em id="nextlv">Rebirth 2</em></h2>
-        <div id="next"></div>
-      </section>
-    </div>
-  </details>
 
   <details id="chartbox">
     <summary>Full chart &mdash; all 35 rebirths</summary>
@@ -1523,22 +1440,6 @@ var CYCLES={
     return out;
   }
 
-  function ownBadge(level, name){
-    var first = firstSeen(name);
-    if (first === level) return '<span class="badge new">\u2726 NEW</span>';
-    return '<span class="badge seen" title="First needed at Rebirth ' + first +
-           '">\u21ba R' + first + '</span>';
-  }
-
-  function verdict(level, name){
-    var nx = nextUse(level, name), T = state.threshold;
-    if (!nx) return { cls:"sell",  tag:"SELL", note:"Not required again this cycle." };
-    var at = "Rebirth " + nx.level + " \u00b7 " + nx.rarity;
-    if (level < T && nx.level >= T)
-      return { cls:"later", tag:"SELL", note:"Safe to sell \u2014 but needed again at " + at + "." };
-    return { cls:"keep", tag:"KEEP", note:"Needed again at " + at + "." };
-  }
-
   // Chart-cell outline for owning `name` at rebirth `level`, honouring the sell-early
   // threshold: "R" (red) = won't be needed again until the threshold+ block, so it's safe to
   // sell now and re-pull later; "Y" = never needed again; "-" = needed again sooner, keep it.
@@ -1553,17 +1454,6 @@ var CYCLES={
     var src = S[d.n + "|" + d.r];
     return src ? '<img class="' + cls + '" src="' + src + '" alt="' + esc(d.n) + '">'
                : '<div class="noimg">' + esc(d.r) + '</div>';
-  }
-
-  function tile(d, ghost, level){
-    if (d.u) {
-      return '<div class="tile unk' + (ghost ? " ghost" : "") + '"><div class="unkArt">?</div>' +
-             '<div class="meta"><div class="rar">?</div><div class="nm">Unknown</div></div></div>';
-    }
-    return '<div class="tile br-' + d.r + (ghost ? " ghost" : "") + '">' +
-             ownBadge(level, d.n) + art(d, "") +
-             '<div class="meta"><div class="rar r-' + d.r + '">' + d.r + '</div>' +
-             '<div class="nm rc-' + rarityClass(d.n) + '">' + esc(d.n) + '</div></div></div>';
   }
 
   // The cycle pills are built once and only their pressed state changes, so element
@@ -1714,7 +1604,7 @@ var CYCLES={
   searchInput.addEventListener("blur", collapseSearchIfEmpty);
 
   function render(){
-    var L = lvl(), r = rows(), i;
+    var L = lvl();
 
     document.getElementById("bkExport").value = exportCode();
 
@@ -1741,46 +1631,6 @@ var CYCLES={
     });
     document.getElementById("thDown").disabled = T <= 1;
     document.getElementById("thUp").disabled = T >= MAXLVL;
-
-    var needLabel = "Rebirth " + L + " \u2014 " + COSTS[L - 1];
-    document.getElementById("curlv").textContent = needLabel;
-    document.getElementById("needSum").textContent = needLabel;
-    var cur = r[L - 1], h = "";
-    for (i = 0; i < 3; i++) h += tile(cur[i], false, L);
-    document.getElementById("current").innerHTML = h;
-
-    h = "";
-    for (i = 0; i < 3; i++) {
-      var d = cur[i];
-      if (d.u) {
-        h += '<div class="v unk"><div class="unkArt">?</div>' +
-             '<div class="who"><div class="nm">Unknown</div>' +
-             '<div class="rr">?</div>' +
-             '<div class="note">Not documented yet for Cycle ' + state.cycle + '.</div></div>' +
-             '<div class="tag">?</div></div>';
-        continue;
-      }
-      var v = verdict(L, d.n);
-      h += '<div class="v ' + v.cls + '">' + art(d, "") +
-           '<div class="who"><div class="nm rc-' + rarityClass(d.n) + '">' + esc(d.n) + '</div>' +
-           '<div class="rr r-' + d.r + '">' + d.r + '</div>' +
-           '<div class="note">' + v.note + '</div></div>' +
-           '<div class="tag">' + v.tag + '</div></div>';
-    }
-    document.getElementById("verdicts").innerHTML = h;
-
-    var nextEl = document.getElementById("next");
-    if (L >= MAXLVL) {
-      document.getElementById("nextlv").textContent = "";
-      nextEl.innerHTML = '<div class="done">Cycle ' + state.cycle + ' complete.' +
-        '<span>Switch cycles above, or reset to 1 to run it again.</span></div>';
-    } else {
-      document.getElementById("nextlv").textContent = "Rebirth " + (L + 1) + " \u2014 " + COSTS[L];
-      var nx = r[L];
-      h = '<div class="tiles">';
-      for (i = 0; i < 3; i++) h += tile(nx[i], true, L + 1);
-      nextEl.innerHTML = h + "</div>";
-    }
 
     renderChart();
     renderSearch();
