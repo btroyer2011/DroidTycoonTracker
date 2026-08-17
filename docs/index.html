@@ -114,39 +114,49 @@ header .lede{
   /* top is a fallback (0, i.e. no banner above it) - syncStickyOffsets() sets the real value
      once the moved-banner's rendered height (if any) is known. */
   position:sticky;top:0;z-index:25;
-  display:flex;justify-content:center;align-items:center;
-  background:var(--bg);padding:9px 0;margin-bottom:14px;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;
+  background:var(--bg);padding:9px 4px;margin-bottom:14px;
   box-shadow:0 8px 14px -10px #000;
 }
+/* icon clusters flanking the reset button. Real grid columns rather than absolutely
+   positioned overlays, so they can never overlap the reset button - it shrinks to fit
+   whatever width is left instead, however narrow the screen. Both sides are a fixed 82px
+   (room for 2 icons: 38px + 6px gap + 38px) regardless of how many icons are actually
+   visible - e.g. the account icon only shows once cloud.js is configured, and the search
+   glass only shows below 600px - so the reset button stays centred on the row either way
+   instead of drifting toward whichever side currently has fewer icons. */
+.rowSide{display:flex;align-items:center;gap:6px;width:82px}
+.rowSide.rowLeft{justify-self:start}
+.rowSide.rowRight{justify-self:end;justify-content:flex-end}
 .reset{
+  /* justify-self:center sizes this to its content (not the full 1fr track) on screens wide
+     enough for that content to fit; max-width:100% caps it at the track's actual width once
+     the track shrinks below that on narrow screens, so it wraps to two lines there instead of
+     overflowing its track into the icon columns on either side. */
+  justify-self:center;min-width:0;max-width:100%;text-align:center;
   appearance:none;border:2px solid var(--line);background:transparent;color:var(--dim);
   border-radius:10px;padding:8px 16px;font:700 11px/1 inherit;letter-spacing:.14em;
   text-transform:uppercase;cursor:pointer;
 }
-/* magnifying-glass toggle: sits at the right of the reset row so the reset button stays
-   centred. Shown only on narrow screens; desktop keeps the full search bar. Offset right:46px
-   (not 0) to leave room for .acctToggle, which always sits at the far right when visible. */
+/* magnifying-glass toggle: shown only on narrow screens; desktop keeps the full search bar. */
 .searchToggle{
-  display:none;position:absolute;right:46px;top:50%;transform:translateY(-50%);
+  display:none;flex:none;
   appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
   border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
   align-items:center;justify-content:center;
 }
 .searchToggle:active{background:var(--panel2)}
-/* settings cog: mirrors the search glass but on the left of the reset row, and shown on every
-   screen size (there is no wider desktop equivalent to fall back to). */
-.cogToggle{
-  position:absolute;left:0;top:50%;transform:translateY(-50%);
-  appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
+/* settings cog and legend icon: shown on every screen size (no wider desktop equivalent). */
+.cogToggle,.legendToggle{
+  flex:none;appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
   border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
   display:flex;align-items:center;justify-content:center;
 }
-.cogToggle:active{background:var(--panel2)}
-/* account icon: sits at the far right of the reset row, right of the search glass on mobile.
-   Hidden until cloud.js reports Firebase is configured.
+.cogToggle:active,.legendToggle:active{background:var(--panel2)}
+/* account icon: hidden until cloud.js reports Firebase is configured.
    A small dot marks whether the signed-in state is on. */
 .acctToggle{
-  position:absolute;right:0;top:50%;transform:translateY(-50%);
+  position:relative;flex:none;
   appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
   border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
   display:flex;align-items:center;justify-content:center;
@@ -517,30 +527,42 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   </div>
   <div class="bar"><i id="bar"></i></div>
   <div class="resetrow">
-    <button class="cogToggle" id="settingsToggle" aria-label="Settings" aria-haspopup="dialog">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="3.2"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-      </svg>
-    </button>
+    <div class="rowSide rowLeft">
+      <button class="cogToggle" id="settingsToggle" aria-label="Settings" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.2"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+      <button class="legendToggle" id="legendToggle" aria-label="Upgrade chip costs & legend" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </button>
+    </div>
     <button class="reset" id="reset">Super Rebirth</button>
-    <button class="searchToggle" id="searchToggle" aria-label="Search a droid" aria-expanded="false">
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
-           stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-        <circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="15.4" y1="15.4" x2="21" y2="21"></line>
-      </svg>
-    </button>
-    <!-- Hidden until cloud.js reports Firebase is configured and initialized; an unconfigured
-         build never shows this at all, so nothing changes for anyone who hasn't set it up. -->
-    <button class="acctToggle" id="acctToggle" hidden aria-label="Account & sync" aria-haspopup="dialog">
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="8" r="4"></circle>
-        <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"></path>
-      </svg>
-      <span class="dot" id="acctDot" hidden></span>
-    </button>
+    <div class="rowSide rowRight">
+      <button class="searchToggle" id="searchToggle" aria-label="Search a droid" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="15.4" y1="15.4" x2="21" y2="21"></line>
+        </svg>
+      </button>
+      <!-- Hidden until cloud.js reports Firebase is configured and initialized; an unconfigured
+           build never shows this at all, so nothing changes for anyone who hasn't set it up. -->
+      <button class="acctToggle" id="acctToggle" hidden aria-label="Account & sync" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"></path>
+        </svg>
+        <span class="dot" id="acctDot" hidden></span>
+      </button>
+    </div>
   </div>
 
   <!-- The search dock is a direct child of .wrap (not a short section), so as the sticky
@@ -557,7 +579,7 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     needs a droid &mdash; a fresh pull. Later entries (<b>&#8634;</b>) upgrade the one you already own.
     Tap a rarity to mark it <b style="color:var(--green)">&#10003; owned</b>.</p>
 
-  <details id="chartbox">
+  <details id="chartbox" open>
     <summary>Full chart &mdash; all 35 rebirths</summary>
     <div class="inner">
       <p class="key">Cell outline:
@@ -575,21 +597,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       <p class="key" style="margin-top:2px">Press and hold a tile (or right-click on desktop) to
         pick the exact rarity you own from a list &mdash; handy when it isn't the tile on screen.</p>
       <div class="chart" id="chart"></div>
-    </div>
-  </details>
-
-  <details>
-    <summary>Upgrade chip costs &amp; legend</summary>
-    <div class="inner">
-      <table id="chips"></table>
-      <div class="legend">
-        <p><span class="sw" style="background:var(--sell)"></span><b>SELL</b> &mdash; not required again anywhere in this cycle.</p>
-        <p><span class="sw" style="background:var(--later)"></span><b>SELL, but needed again</b> &mdash; safe to sell now, but the chart asks for it again at Rebirth&nbsp;<b id="lgThresh">21</b> or later. Adjust this cutoff with the settings <span aria-hidden="true">&#9881;</span> cog.</p>
-        <p><span class="sw" style="background:var(--keep)"></span><b>KEEP</b> &mdash; required again before Rebirth&nbsp;<b id="lgThresh2">21</b>, so hold on to it.</p>
-        <p><b style="color:var(--cyan)">&#10022; NEW</b> &mdash; the first rebirth this cycle that needs a droid: a fresh pull or build. On the chart it shows as a cyan dot.</p>
-        <p><b style="color:#cfd3e0">&#8634; R<i>n</i></b> &mdash; you were already asked for this droid at Rebirth <i>n</i>, so you should own it &mdash; this rebirth just upgrades its rarity.</p>
-        <p>Verdicts are worked out from the chart itself, not copied from the poster banners, so they stay correct at whatever rebirth you are on.</p>
-      </div>
     </div>
   </details>
 
@@ -661,6 +668,22 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       outline, so keep it. In the full chart, rebirth numbers from <b id="thN3">21</b> on are
       shown in red to mark the block.</p>
     <button class="pkCancel" id="stClose">Done</button>
+  </div>
+</div>
+
+<div class="modal" id="legend" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
+    <h3 id="lgTitle">Upgrade chip costs &amp; legend</h3>
+    <table id="chips"></table>
+    <div class="legend">
+      <p><span class="sw" style="background:var(--sell)"></span><b>SELL</b> &mdash; not required again anywhere in this cycle.</p>
+      <p><span class="sw" style="background:var(--later)"></span><b>SELL, but needed again</b> &mdash; safe to sell now, but the chart asks for it again at Rebirth&nbsp;<b id="lgThresh">21</b> or later. Adjust this cutoff with the settings <span aria-hidden="true">&#9881;</span> cog.</p>
+      <p><span class="sw" style="background:var(--keep)"></span><b>KEEP</b> &mdash; required again before Rebirth&nbsp;<b id="lgThresh2">21</b>, so hold on to it.</p>
+      <p><b style="color:var(--cyan)">&#10022; NEW</b> &mdash; the first rebirth this cycle that needs a droid: a fresh pull or build. On the chart it shows as a cyan dot.</p>
+      <p><b style="color:#cfd3e0">&#8634; R<i>n</i></b> &mdash; you were already asked for this droid at Rebirth <i>n</i>, so you should own it &mdash; this rebirth just upgrades its rarity.</p>
+      <p>Verdicts are worked out from the chart itself, not copied from the poster banners, so they stay correct at whatever rebirth you are on.</p>
+    </div>
+    <button class="pkCancel" id="legendClose">Done</button>
   </div>
 </div>
 
@@ -1774,6 +1797,15 @@ var CYCLES={
   document.getElementById("thDown").addEventListener("click", function(){ setThreshold(state.threshold - 1); });
   settings.addEventListener("click", function(e){ if (e.target === settings) closeSettings(); });
 
+  // ---- legend (upgrade chip costs & the chart's colour key) ---------------------------
+  var legend = document.getElementById("legend");
+  function openLegend(){ legend.hidden = false; document.body.style.overflow = "hidden";
+    document.getElementById("legendClose").focus(); }
+  function closeLegend(){ legend.hidden = true; document.body.style.overflow = ""; }
+  document.getElementById("legendToggle").addEventListener("click", openLegend);
+  document.getElementById("legendClose").addEventListener("click", closeLegend);
+  legend.addEventListener("click", function(e){ if (e.target === legend) closeLegend(); });
+
   pkList.addEventListener("click", function(e){
     var b = e.target.closest(".pk"); if (!b) return;
     state.cycle = +b.dataset.c;
@@ -1793,6 +1825,7 @@ var CYCLES={
     if (!importConfirm.hidden) closeImportConfirm();
     if (!levelConfirm.hidden) closeLevelConfirm();
     if (!account.hidden) closeAccount();
+    if (!legend.hidden) closeLegend();
   });
 
   // ---- rarity picker (opened by press-and-hold / right-click on a chart tile) -----------
