@@ -124,9 +124,10 @@ header .lede{
   text-transform:uppercase;cursor:pointer;
 }
 /* magnifying-glass toggle: sits at the right of the reset row so the reset button stays
-   centred. Shown only on narrow screens; desktop keeps the full search bar. */
+   centred. Shown only on narrow screens; desktop keeps the full search bar. Offset right:46px
+   (not 0) to leave room for .acctToggle, which always sits at the far right when visible. */
 .searchToggle{
-  display:none;position:absolute;right:0;top:50%;transform:translateY(-50%);
+  display:none;position:absolute;right:46px;top:50%;transform:translateY(-50%);
   appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
   border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
   align-items:center;justify-content:center;
@@ -141,6 +142,24 @@ header .lede{
   display:flex;align-items:center;justify-content:center;
 }
 .cogToggle:active{background:var(--panel2)}
+/* account icon: sits at the far right of the reset row, right of the search glass on mobile.
+   Hidden until cloud.js reports Firebase is configured.
+   A small dot marks whether the signed-in state is on. */
+.acctToggle{
+  position:absolute;right:0;top:50%;transform:translateY(-50%);
+  appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
+  border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
+  display:flex;align-items:center;justify-content:center;
+}
+.acctToggle[hidden]{display:none}
+.acctToggle:active{background:var(--panel2)}
+.acctToggle.signedIn{color:var(--green);border-color:var(--green)}
+.acctToggle .dot{
+  position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;
+  background:var(--dim);border:2px solid var(--bg);
+}
+.acctToggle.signedIn .dot{background:var(--green)}
+.acctToggle .dot[hidden]{display:none}
 
 @media (max-width:600px){
   /* collapsed by default on mobile: search area hidden, just the glass in the reset row */
@@ -575,6 +594,16 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
         <circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="15.4" y1="15.4" x2="21" y2="21"></line>
       </svg>
     </button>
+    <!-- Hidden until cloud.js reports Firebase is configured and initialized; an unconfigured
+         build never shows this at all, so nothing changes for anyone who hasn't set it up. -->
+    <button class="acctToggle" id="acctToggle" hidden aria-label="Account & sync" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"></path>
+      </svg>
+      <span class="dot" id="acctDot" hidden></span>
+    </button>
   </div>
 
   <!-- The search dock is a direct child of .wrap (not a short section), so as the sticky
@@ -674,44 +703,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     </div>
   </details>
 
-  <!-- Hidden until cloud.js reports Firebase is configured and initialized; an unconfigured
-       build never shows this at all, so nothing changes for anyone who hasn't set it up. -->
-  <details id="acctbox" hidden>
-    <summary>Account &amp; sync</summary>
-    <div class="inner">
-      <p class="key">Sign in to keep your progress in sync across every device, updated live as
-        you play &mdash; on top of the on-device backup above, not instead of it.</p>
-
-      <div id="acctSignedOut">
-        <button class="bkBtn" id="acctSignIn">Sign in with Google</button>
-        <p class="bkStatus">Progress stays on this device only until you sign in.</p>
-      </div>
-
-      <div id="acctSignedIn" hidden>
-        <p class="bkLabel" style="margin-top:0">Signed in</p>
-        <p class="key" id="acctWho" style="margin:0 0 8px"></p>
-        <div class="bkRow">
-          <button class="bkBtn" id="acctSignOut">Sign out</button>
-        </div>
-        <p class="bkStatus" id="acctSyncStatus" aria-live="polite"></p>
-      </div>
-
-      <div id="acctAdmin" hidden>
-        <p class="bkLabel">Game data (admin)</p>
-        <p class="key">Edit the cycles/costs/rarities JSON and publish &mdash; every signed-in
-          device picks up the change live, no app update needed.</p>
-        <textarea id="admData" class="bkCode" rows="10" spellcheck="false"
-                  aria-label="Game data JSON"></textarea>
-        <div class="bkRow">
-          <button class="bkBtn" id="admLoad">Load current</button>
-          <button class="bkBtn" id="admValidate">Validate</button>
-          <button class="bkBtn" id="admPublish">Publish live</button>
-        </div>
-        <p class="bkStatus" id="admStatus" aria-live="polite"></p>
-      </div>
-    </div>
-  </details>
-
   <footer id="foot"></footer>
 </div>
 
@@ -753,6 +744,44 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       outline, so keep it. In the full chart, rebirth numbers from <b id="thN3">21</b> on are
       shown in red to mark the block.</p>
     <button class="pkCancel" id="stClose">Done</button>
+  </div>
+</div>
+
+<div class="modal" id="account" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle">
+    <h3 id="acctTitle">Account &amp; sync</h3>
+    <p class="key">Sign in to keep your progress in sync across every device, updated live as
+      you play &mdash; on top of the on-device backup above, not instead of it.</p>
+
+    <div id="acctSignedOut">
+      <button class="bkBtn" id="acctSignIn">Sign in with Google</button>
+      <p class="bkStatus">Progress stays on this device only until you sign in.</p>
+    </div>
+
+    <div id="acctSignedIn" hidden>
+      <p class="bkLabel" style="margin-top:0">Signed in</p>
+      <p class="key" id="acctWho" style="margin:0 0 8px"></p>
+      <div class="bkRow">
+        <button class="bkBtn" id="acctSignOut">Sign out</button>
+      </div>
+      <p class="bkStatus" id="acctSyncStatus" aria-live="polite"></p>
+    </div>
+
+    <div id="acctAdmin" hidden>
+      <p class="bkLabel">Game data (admin)</p>
+      <p class="key">Edit the cycles/costs/rarities JSON and publish &mdash; every signed-in
+        device picks up the change live, no app update needed.</p>
+      <textarea id="admData" class="bkCode" rows="10" spellcheck="false"
+                aria-label="Game data JSON"></textarea>
+      <div class="bkRow">
+        <button class="bkBtn" id="admLoad">Load current</button>
+        <button class="bkBtn" id="admValidate">Validate</button>
+        <button class="bkBtn" id="admPublish">Publish live</button>
+      </div>
+      <p class="bkStatus" id="admStatus" aria-live="polite"></p>
+    </div>
+
+    <button class="pkCancel" id="acctClose">Done</button>
   </div>
 </div>
 
@@ -1913,6 +1942,7 @@ var CYCLES={
     if (!rarityPicker.hidden) closeRarityPicker();
     if (!importConfirm.hidden) closeImportConfirm();
     if (!levelConfirm.hidden) closeLevelConfirm();
+    if (!account.hidden) closeAccount();
   });
 
   // ---- rarity picker (opened by press-and-hold / right-click on a chart tile) -----------
@@ -2120,13 +2150,23 @@ var CYCLES={
   // script - via window CustomEvents in one direction and a window.Cloud API in the other
   // (see cloud.js's header comment for the full contract). If cloud.js never dispatches
   // anything - unconfigured, offline, blocked - none of this runs and the app behaves exactly
-  // as it always has: state lives in localStorage only, and #acctbox stays hidden.
+  // as it always has: state lives in localStorage only, and #acctToggle stays hidden.
   var cloudUser = null, isAdmin = false, cloudSaveTimer = null, seededCloudDoc = false;
   var applyingRemoteState = false; // true only while state is being overwritten FROM the cloud
   var CLOUD_SAVE_DEBOUNCE_MS = 800;
   var acctSignedOut = document.getElementById("acctSignedOut");
   var acctSignedIn = document.getElementById("acctSignedIn");
   var acctAdmin = document.getElementById("acctAdmin");
+  var acctToggle = document.getElementById("acctToggle");
+  var acctDot = document.getElementById("acctDot");
+  var account = document.getElementById("account");
+
+  function openAccount(){ account.hidden = false; document.body.style.overflow = "hidden";
+    document.getElementById("acctClose").focus(); }
+  function closeAccount(){ account.hidden = true; document.body.style.overflow = ""; }
+  acctToggle.addEventListener("click", openAccount);
+  document.getElementById("acctClose").addEventListener("click", closeAccount);
+  account.addEventListener("click", function(e){ if (e.target === account) closeAccount(); });
 
   function scheduleCloudSave(){
     if (!cloudUser || !window.Cloud || applyingRemoteState) return;
@@ -2139,7 +2179,7 @@ var CYCLES={
   }
 
   window.addEventListener("cloud:ready", function(){
-    document.getElementById("acctbox").hidden = false;
+    acctToggle.hidden = false;
   });
 
   window.addEventListener("cloud:auth", function(e){
@@ -2151,11 +2191,18 @@ var CYCLES={
       document.getElementById("acctWho").textContent =
         (cloudUser.displayName || cloudUser.email || "Signed in") + " — syncing across your devices.";
       setStatus("acctSyncStatus", "", "");
+      acctToggle.classList.add("signedIn");
+      acctDot.hidden = false;
+      acctToggle.setAttribute("aria-label",
+        "Account & sync — signed in as " + (cloudUser.displayName || cloudUser.email || "you"));
     } else {
       acctSignedOut.hidden = false;
       acctSignedIn.hidden = true;
       acctAdmin.hidden = true;
       isAdmin = false;
+      acctToggle.classList.remove("signedIn");
+      acctDot.hidden = true;
+      acctToggle.setAttribute("aria-label", "Account & sync — signed out");
     }
   });
 
