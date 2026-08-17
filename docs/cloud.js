@@ -30,6 +30,27 @@
 //   users/{uid}       - one doc per signed-in user, their `state` object. Owner read/write only.
 //   admins/{uid}      - existence-only allowlist doc; its presence is what "admin" means.
 // See firestore.rules at the repo root for the enforced version of the two rules above.
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA_BKMpZ2WAwpbNGC0mcetNyBQDDJF55dw",
+  authDomain: "srbtracker.firebaseapp.com",
+  projectId: "srbtracker",
+  storageBucket: "srbtracker.firebasestorage.app",
+  messagingSenderId: "941631322932",
+  appId: "1:941631322932:web:827a5178794663ef290361",
+  measurementId: "G-D1Y9V6SC27"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 const firebaseConfig = {
   apiKey: "",
