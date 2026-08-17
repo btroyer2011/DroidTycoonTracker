@@ -582,20 +582,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <details id="chartbox" open>
     <summary>Full chart &mdash; all 35 rebirths</summary>
     <div class="inner">
-      <p class="key">Cell outline:
-        <span class="sw" style="background:var(--sell)"></span>sell after this rebirth
-        <span class="sw" style="background:var(--later)"></span>sell, needed again at rebirth&nbsp;<b id="klThresh">21</b>+
-        <span class="sw" style="background:#3a4150"></span>keep
-      </p>
-      <p class="key" style="margin-top:2px"><b style="color:var(--cyan)">&#9670;</b> crystals earned
-        at that rebirth &mdash; the reward starts at Rebirth&nbsp;12.</p>
-      <p class="key" style="margin-top:2px"><b>&#8634;</b> small numbers on a tile are later
-        rebirths that also need it, coloured by the rarity required then.</p>
-      <p class="key" style="margin-top:2px"><b style="color:var(--green)">&#10003;</b> tap a droid
-        tile to mark it owned at that rarity: that tile and every lower-rarity tile of the same
-        droid dim. Tap a higher rarity to include it too; tap a dimmed tile to give it back.</p>
-      <p class="key" style="margin-top:2px">Press and hold a tile (or right-click on desktop) to
-        pick the exact rarity you own from a list &mdash; handy when it isn't the tile on screen.</p>
       <div class="chart" id="chart"></div>
     </div>
   </details>
@@ -674,6 +660,20 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 <div class="modal" id="legend" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
     <h3 id="lgTitle">Upgrade chip costs &amp; legend</h3>
+    <p class="key">Cell outline:
+      <span class="sw" style="background:var(--sell)"></span>sell after this rebirth
+      <span class="sw" style="background:var(--later)"></span>sell, needed again at rebirth&nbsp;<b id="klThresh">21</b>+
+      <span class="sw" style="background:#3a4150"></span>keep
+    </p>
+    <p class="key" style="margin-top:2px"><b style="color:var(--cyan)">&#9670;</b> crystals earned
+      at that rebirth &mdash; the reward starts at Rebirth&nbsp;12.</p>
+    <p class="key" style="margin-top:2px"><b>&#8634;</b> small numbers on a tile are later
+      rebirths that also need it, coloured by the rarity required then.</p>
+    <p class="key" style="margin-top:2px"><b style="color:var(--green)">&#10003;</b> tap a droid
+      tile to mark it owned at that rarity: that tile and every lower-rarity tile of the same
+      droid dim. Tap a higher rarity to include it too; tap a dimmed tile to give it back.</p>
+    <p class="key" style="margin-top:2px">Press and hold a tile (or right-click on desktop) to
+      pick the exact rarity you own from a list &mdash; handy when it isn't the tile on screen.</p>
     <table id="chips"></table>
     <div class="legend">
       <p><span class="sw" style="background:var(--sell)"></span><b>SELL</b> &mdash; not required again anywhere in this cycle.</p>
