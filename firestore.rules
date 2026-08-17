@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Existence-only allowlist: presence of admins/{uid} means that uid is an admin. Content
+    // doesn't matter - the app only checks whether the doc exists, to decide whether to show
+    // the in-app game-data editor. A signed-in user may read only their OWN admin doc (so they
+    // can tell whether they themselves are one); nothing can write here from the client at
+    // all - admins are added by hand in the Firestore console (see FIREBASE_SETUP.md).
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // The whole game dataset (cycles/costs/crystals/rarity classes/chips) as one document.
+    // Readable by anyone, including signed-out visitors, so the app can load current data
+    // without requiring login. Writable only by an admin.
+    match /config/gamedata {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // A user's own saved progress (their `state` object). Only that user may read or write it.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Everything else is closed by default - Firestore denies unmatched paths, so there is no
+    // catch-all "allow" below, on purpose.
+  }
+}

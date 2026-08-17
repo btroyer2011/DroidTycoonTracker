@@ -13,6 +13,9 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <title>Super Rebirth Tracker &mdash; Droid Tycoon</title>
+<!-- Optional cloud sync (cross-device progress + live-editable game data). Does nothing and
+     makes no network calls until a Firebase project is configured - see FIREBASE_SETUP.md. -->
+<script type="module" src="./cloud.js"></script>
 <style>
 :root{
   --bg:#07070a; --panel:#101018; --panel2:#16161f; --line:#26263a;
@@ -671,6 +674,44 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     </div>
   </details>
 
+  <!-- Hidden until cloud.js reports Firebase is configured and initialized; an unconfigured
+       build never shows this at all, so nothing changes for anyone who hasn't set it up. -->
+  <details id="acctbox" hidden>
+    <summary>Account &amp; sync</summary>
+    <div class="inner">
+      <p class="key">Sign in to keep your progress in sync across every device, updated live as
+        you play &mdash; on top of the on-device backup above, not instead of it.</p>
+
+      <div id="acctSignedOut">
+        <button class="bkBtn" id="acctSignIn">Sign in with Google</button>
+        <p class="bkStatus">Progress stays on this device only until you sign in.</p>
+      </div>
+
+      <div id="acctSignedIn" hidden>
+        <p class="bkLabel" style="margin-top:0">Signed in</p>
+        <p class="key" id="acctWho" style="margin:0 0 8px"></p>
+        <div class="bkRow">
+          <button class="bkBtn" id="acctSignOut">Sign out</button>
+        </div>
+        <p class="bkStatus" id="acctSyncStatus" aria-live="polite"></p>
+      </div>
+
+      <div id="acctAdmin" hidden>
+        <p class="bkLabel">Game data (admin)</p>
+        <p class="key">Edit the cycles/costs/rarities JSON and publish &mdash; every signed-in
+          device picks up the change live, no app update needed.</p>
+        <textarea id="admData" class="bkCode" rows="10" spellcheck="false"
+                  aria-label="Game data JSON"></textarea>
+        <div class="bkRow">
+          <button class="bkBtn" id="admLoad">Load current</button>
+          <button class="bkBtn" id="admValidate">Validate</button>
+          <button class="bkBtn" id="admPublish">Publish live</button>
+        </div>
+        <p class="bkStatus" id="admStatus" aria-live="polite"></p>
+      </div>
+    </div>
+  </details>
+
   <footer id="foot"></footer>
 </div>
 
@@ -946,17 +987,20 @@ var MAXLVL=35;
 var CRYSTALS={12:11,13:16,14:22,15:29,16:37,17:46,18:56,19:67,20:79,21:92,22:106,23:121,24:137,25:154,26:172,27:191,28:221,29:232,30:254};
 var META={version:"Update v1.23 (25 Jul 2026)"};
 // Each droid's intrinsic rarity class (independent of the per-cell BASE/GOLD/... variation).
-// Droid NAMES are tinted by this; the variation label keeps its own colour.
-var DROID_RARITY=(function(){
-  var g={
-    COMMON:["MOUSE","PIT","GONK","CB","R3","R5","R8","DRK-I PROBE","IMPERIAL PROBE","ID10","B1 BATTLE"],
-    RARE:["BDX EXPLORER","ARG","SENATE HOVER","B-U4D","BAL-CORE","ROLL-R","2BB","A-LT","R4","R9","B1 SECURITY","NAV-EX","VECT-ARM","HOV-R"],
-    EPIC:["GROUNDMECH","LO","AMP WALKER","SEN-TRI","OPTI-POD","GUNRUNNER","BB","R2","R6","TRAK-R","ORB WALKER","UTIL-TEC","B1 HEAVY","B2 SUPER","B2 HEAVY","STRIKE-ORB","HAUL-R","LNG-SHOT"],
-    LEGENDARY:["PROTO ROLLER","MECHA DROID","MONO-WLKR","BB9","R7","B2-RP","CYCLO-GRAV","OPTI-STRK"],
-    MYTHIC:["SNOW MOUSE","RIC","LOADLIFTER","LEP","RIC-1200","DRFT-R","CYCLENS","MO-TRAK","TRI-TEK","IG","KX"]
-  };
-  var m={}; for (var k in g) g[k].forEach(function(n){ m[n]=k; }); return m;
-})();
+// Droid NAMES are tinted by this; the variation label keeps its own colour. Kept as its own
+// var (rather than folded straight into DROID_RARITY) so a published cloud update can ship a
+// replacement rarityClasses map and have DROID_RARITY rebuilt from it the same way.
+var RARITY_CLASSES={
+  COMMON:["MOUSE","PIT","GONK","CB","R3","R5","R8","DRK-I PROBE","IMPERIAL PROBE","ID10","B1 BATTLE"],
+  RARE:["BDX EXPLORER","ARG","SENATE HOVER","B-U4D","BAL-CORE","ROLL-R","2BB","A-LT","R4","R9","B1 SECURITY","NAV-EX","VECT-ARM","HOV-R"],
+  EPIC:["GROUNDMECH","LO","AMP WALKER","SEN-TRI","OPTI-POD","GUNRUNNER","BB","R2","R6","TRAK-R","ORB WALKER","UTIL-TEC","B1 HEAVY","B2 SUPER","B2 HEAVY","STRIKE-ORB","HAUL-R","LNG-SHOT"],
+  LEGENDARY:["PROTO ROLLER","MECHA DROID","MONO-WLKR","BB9","R7","B2-RP","CYCLO-GRAV","OPTI-STRK"],
+  MYTHIC:["SNOW MOUSE","RIC","LOADLIFTER","LEP","RIC-1200","DRFT-R","CYCLENS","MO-TRAK","TRI-TEK","IG","KX"]
+};
+function buildDroidRarityMap(classes){
+  var m={}; for (var k in classes) classes[k].forEach(function(n){ m[n]=k; }); return m;
+}
+var DROID_RARITY=buildDroidRarityMap(RARITY_CLASSES);
 var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic"],rows:[
 ["Common",10,25,40,80,120],
 ["Rare",30,60,100,250,400],
@@ -1226,9 +1270,128 @@ var CYCLES={
 
   function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(MAXLVL, Math.max(1, n)); }
   function clampT(n){ n = parseInt(n, 10); if (isNaN(n)) n = THRESH_DEFAULT; return Math.min(MAXLVL, Math.max(1, n)); }
-  function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    scheduleCloudSave(); // no-op until signed in (see "cloud sync" section below)
+  }
   function lvl(){ return state.levels[state.cycle]; }
   function rows(){ return CYCLES[state.cycle]; }
+
+  // ---- game data: bundled defaults vs. a live cloud update -----------------------------
+  // Everything below reads/writes the same COSTS/MAXLVL/CRYSTALS/CHIPS/RARITY_CLASSES/
+  // DROID_RARITY/META/CYCLES vars the whole app already reads live (see the grep audit in
+  // the PR): reassigning them here is enough to make a cloud update take effect everywhere,
+  // no other code needs to know whether it's looking at the bundled data or a published one.
+
+  // Snapshot of the currently active tables, in the shape stored at config/gamedata. Used to
+  // seed the admin editor (works whether that's still the bundled defaults, or a previously
+  // applied cloud update) and as the payload for a "publish" write.
+  function getActiveGameData(){
+    return {
+      version: META.version, maxlvl: MAXLVL, costs: COSTS, crystals: CRYSTALS,
+      rarityClasses: RARITY_CLASSES, chips: CHIPS, cycles: CYCLES
+    };
+  }
+
+  // Validates a candidate game-data object before it's applied or published. Never throws -
+  // returns {ok:true} or {ok:false, errors:[...]} so a bad admin edit can be reported inline.
+  // A cell's rarity ends up unescaped in several places (a CSS class suffix, an HTML
+  // attribute, and plain text) because it always used to come from reviewed source code. Now
+  // that it can come from a remote, admin-published document, every rarity value is checked
+  // against this fixed whitelist (plus "?" for an undocumented placeholder cell) rather than
+  // trying to safely escape it at each of those call sites - a value that isn't on the list is
+  // rejected outright, so nothing ever reaches the page unescaped in the first place.
+  var VALID_RARITIES = RARITY_ORDER.concat(["?"]);
+  // Same idea for a rarity-CLASS name (Common/Rare/Epic/...): it ends up as a CSS class suffix
+  // too (rc-<class>), so it's restricted to a safe identifier shape rather than escaped.
+  var SAFE_IDENT = /^[A-Za-z][A-Za-z0-9_]*$/;
+
+  function validateGameData(data){
+    var errors = [];
+    function fail(msg){ errors.push(msg); }
+    if (!data || typeof data !== "object") { fail("Not an object."); return { ok:false, errors:errors }; }
+
+    var ml = parseInt(data.maxlvl, 10);
+    if (!(ml >= 1 && ml <= 60)) fail("maxlvl must be a number between 1 and 60.");
+    if (!Array.isArray(data.costs) || (ml && data.costs.length !== ml)) {
+      fail("costs must be an array with exactly maxlvl entries.");
+    }
+    if (!data.cycles || typeof data.cycles !== "object") {
+      fail("cycles is missing.");
+    } else {
+      for (var c = 1; c <= 5; c++) {
+        var cRows = data.cycles[c] || data.cycles[String(c)];
+        if (!Array.isArray(cRows) || (ml && cRows.length !== ml)) {
+          fail("Cycle " + c + " must have exactly maxlvl rows."); continue;
+        }
+        cRows.forEach(function(row, i){
+          if (!Array.isArray(row) || row.length !== 3) { fail("Cycle " + c + " rebirth " + (i + 1) + " must have 3 cells."); return; }
+          row.forEach(function(cell){
+            if (!cell || typeof cell !== "object") { fail("Cycle " + c + " rebirth " + (i + 1) + " has an invalid cell."); return; }
+            if (!cell.u && (typeof cell.n !== "string" || !cell.n)) fail("Cycle " + c + " rebirth " + (i + 1) + " has a cell with no droid name.");
+            if (VALID_RARITIES.indexOf(cell.r) === -1) fail("Cycle " + c + " rebirth " + (i + 1) + " has an unrecognised rarity \"" + cell.r + "\".");
+          });
+        });
+      }
+    }
+    // chips and crystals are required, not optional: the app has nowhere sensible to fall
+    // back to for either (a blank chips table, or every crystal reward silently vanishing).
+    if (!data.crystals || typeof data.crystals !== "object" || Array.isArray(data.crystals)) {
+      fail("crystals is missing or not an object.");
+    }
+    if (!data.chips || !Array.isArray(data.chips.cols) || !Array.isArray(data.chips.rows)) {
+      fail("chips must have cols[] and rows[].");
+    } else {
+      data.chips.rows.forEach(function(row, i){
+        if (!Array.isArray(row) || row.length < 1 || typeof row[0] !== "string") {
+          fail("chips.rows[" + i + "] must start with a text label.");
+        }
+      });
+    }
+    if (data.rarityClasses) {
+      // (an array is truthy too, and would otherwise sail through "typeof === object" and
+      // silently wipe every droid's rarity-class name colour once applied - see applyGameData)
+      if (typeof data.rarityClasses !== "object" || Array.isArray(data.rarityClasses)) {
+        fail("rarityClasses must be an object.");
+      } else for (var k in data.rarityClasses) {
+        if (!SAFE_IDENT.test(k)) fail("rarityClasses key \"" + k + "\" isn't a plain identifier.");
+        if (!Array.isArray(data.rarityClasses[k])) fail("rarityClasses." + k + " must be an array of droid names.");
+      }
+    }
+
+    return { ok: errors.length === 0, errors: errors };
+  }
+
+  // Swaps the active tables for a validated dataset and re-renders everywhere that depends on
+  // them (chips table + the whole chart/search/verdicts via render()). Called both when a
+  // cloud update arrives, and locally by the admin editor for instant feedback before the
+  // write round-trips back through its own listener. Rejects (keeping the current data, with
+  // a console warning) rather than throwing, so a bad publish can never brick the app.
+  function applyGameData(data){
+    var v = validateGameData(data);
+    if (!v.ok) { console.warn("[gamedata] rejected invalid update:", v.errors); return false; }
+
+    COSTS = data.costs;
+    MAXLVL = parseInt(data.maxlvl, 10);
+    // crystals/chips are validated as required above, so these are plain assignments, not
+    // fallbacks; rarityClasses stays genuinely optional, so it keeps its "|| existing" default.
+    CRYSTALS = data.crystals;
+    CHIPS = data.chips;
+    RARITY_CLASSES = data.rarityClasses || RARITY_CLASSES;
+    DROID_RARITY = buildDroidRarityMap(RARITY_CLASSES);
+    META = { version: data.version || META.version };
+    var normalized = {};
+    for (var c2 = 1; c2 <= 5; c2++) normalized[c2] = data.cycles[c2] || data.cycles[String(c2)];
+    CYCLES = normalized;
+
+    // re-clamp saved progress against the (possibly changed) maxlvl/threshold bounds
+    for (var cy in state.levels) state.levels[cy] = clamp(state.levels[cy]);
+    state.threshold = clampT(state.threshold);
+
+    renderChipsTable();
+    render();
+    return true;
+  }
 
   // ---- backup / restore ---------------------------------------------------------------
   // Progress only lives in this browser's storage, which iOS in particular can evict. The
@@ -1240,13 +1403,10 @@ var CYCLES={
   // Parses and sanitizes a pasted/uploaded code into a clean state object, or throws an
   // Error with a message meant to be shown to the user directly. Never trusts the blob's
   // shape - out-of-range or wrong-typed fields are dropped rather than applied as-is.
-  function parseBackupCode(raw){
-    var s = String(raw || "").trim();
-    if (!s) throw new Error("Paste a backup code first.");
-    if (s.indexOf(BACKUP_PREFIX) !== 0) throw new Error("That doesn't look like a Rebirth Tracker backup code.");
-    var json, obj;
-    try { json = atob(s.slice(BACKUP_PREFIX.length)); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
-    try { obj = JSON.parse(json); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
+  // Turns any raw object (a parsed backup code, or a cloud user-doc payload - anything that
+  // claims to be a state) into a clean, safe state, same validation either way. Throws with a
+  // user-facing message if the shape is unusable.
+  function sanitizeState(obj){
     if (!obj || typeof obj !== "object") throw new Error("That code is corrupted or incomplete.");
     if (!obj.levels || typeof obj.levels !== "object") throw new Error("That code is missing rebirth-level data.");
     if (!(obj.cycle >= 1 && obj.cycle <= 5)) throw new Error("That code has an invalid cycle.");
@@ -1267,6 +1427,16 @@ var CYCLES={
       }
     }
     return clean;
+  }
+
+  function parseBackupCode(raw){
+    var s = String(raw || "").trim();
+    if (!s) throw new Error("Paste a backup code first.");
+    if (s.indexOf(BACKUP_PREFIX) !== 0) throw new Error("That doesn't look like a Rebirth Tracker backup code.");
+    var json, obj;
+    try { json = atob(s.slice(BACKUP_PREFIX.length)); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
+    try { obj = JSON.parse(json); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
+    return sanitizeState(obj);
   }
 
   // Owned droids are tracked per cycle. The stored value is the rank of the HIGHEST rarity you
@@ -1384,7 +1554,7 @@ var CYCLES={
       h += '<div class="row' + (n === L ? " now" : "") + (n >= state.threshold ? " late" : "") + '"' +
            (n === L ? ' id="nowrow"' : "") + '>' +
            '<div class="lv" data-lv="' + n + '" title="Press and hold to set as your current rebirth"><b>' + n + '</b><i>' + COSTS[i] + '</i>' +
-             (CRYSTALS[n] ? '<span class="cry">\u25C6' + CRYSTALS[n] + '</span>' : '') +
+             (CRYSTALS[n] ? '<span class="cry">\u25C6' + esc(CRYSTALS[n]) + '</span>' : '') +
              (n === L ?
                '<div class="chartstep">' +
                  '<button class="cst" data-d="-1"' + (L <= 1 ? ' disabled' : '') +
@@ -1903,20 +2073,23 @@ var CYCLES={
     if (e.target.closest("#lcCancel") || e.target === levelConfirm) closeLevelConfirm();
   });
 
-  // reference table
-  (function(){
+  // reference table - re-run after a cloud game-data update, since CHIPS/META may have changed
+  function renderChipsTable(){
+    // esc() everything here too: chips/version can now come from a published cloud update,
+    // same reasoning as the rarity whitelist above - don't trust it as pre-sanitized HTML.
     var h = "<tr><th>Rarity</th>";
-    for (var i = 0; i < CHIPS.cols.length; i++) h += "<th>" + CHIPS.cols[i] + "</th>";
+    for (var i = 0; i < CHIPS.cols.length; i++) h += "<th>" + esc(CHIPS.cols[i]) + "</th>";
     h += "</tr>";
     for (var r = 0; r < CHIPS.rows.length; r++) {
-      h += "<tr><td>" + CHIPS.rows[r][0] + "</td>";
-      for (var c = 1; c < CHIPS.rows[r].length; c++) h += "<td>" + CHIPS.rows[r][c] + "</td>";
+      h += "<tr><td>" + esc(CHIPS.rows[r][0]) + "</td>";
+      for (var c = 1; c < CHIPS.rows[r].length; c++) h += "<td>" + esc(CHIPS.rows[r][c]) + "</td>";
       h += "</tr>";
     }
     document.getElementById("chips").innerHTML = h;
     document.getElementById("foot").innerHTML =
-      "Chart data: Droid Tycoon " + META.version + "<br>Money costs are identical in every cycle.";
-  })();
+      "Chart data: Droid Tycoon " + esc(META.version) + "<br>Money costs are identical in every cycle.";
+  }
+  renderChipsTable();
 
   // ---- sticky stack offsets --------------------------------------------------------------
   // The moved-banner (Artifact build only) and the reset bar both sit above the sticky search
@@ -1940,6 +2113,124 @@ var CYCLES={
   window.addEventListener("resize", function(){
     clearTimeout(stickyResizeTimer);
     stickyResizeTimer = setTimeout(syncStickyOffsets, 120);
+  });
+
+  // ---- cloud sync (optional; inert until cloud.js reports Firebase is configured) --------
+  // Bridges to docs/cloud.js - an ES module, so it can't share closures with this classic
+  // script - via window CustomEvents in one direction and a window.Cloud API in the other
+  // (see cloud.js's header comment for the full contract). If cloud.js never dispatches
+  // anything - unconfigured, offline, blocked - none of this runs and the app behaves exactly
+  // as it always has: state lives in localStorage only, and #acctbox stays hidden.
+  var cloudUser = null, isAdmin = false, cloudSaveTimer = null, seededCloudDoc = false;
+  var applyingRemoteState = false; // true only while state is being overwritten FROM the cloud
+  var CLOUD_SAVE_DEBOUNCE_MS = 800;
+  var acctSignedOut = document.getElementById("acctSignedOut");
+  var acctSignedIn = document.getElementById("acctSignedIn");
+  var acctAdmin = document.getElementById("acctAdmin");
+
+  function scheduleCloudSave(){
+    if (!cloudUser || !window.Cloud || applyingRemoteState) return;
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(function(){
+      window.Cloud.saveUserDoc(cloudUser.uid, state).catch(function(err){
+        setStatus("acctSyncStatus", "Couldn't sync: " + err.message, "err");
+      });
+    }, CLOUD_SAVE_DEBOUNCE_MS);
+  }
+
+  window.addEventListener("cloud:ready", function(){
+    document.getElementById("acctbox").hidden = false;
+  });
+
+  window.addEventListener("cloud:auth", function(e){
+    cloudUser = e.detail;
+    seededCloudDoc = false;
+    if (cloudUser) {
+      acctSignedOut.hidden = true;
+      acctSignedIn.hidden = false;
+      document.getElementById("acctWho").textContent =
+        (cloudUser.displayName || cloudUser.email || "Signed in") + " — syncing across your devices.";
+      setStatus("acctSyncStatus", "", "");
+    } else {
+      acctSignedOut.hidden = false;
+      acctSignedIn.hidden = true;
+      acctAdmin.hidden = true;
+      isAdmin = false;
+    }
+  });
+
+  window.addEventListener("cloud:admin", function(e){
+    isAdmin = !!e.detail;
+    acctAdmin.hidden = !isAdmin;
+  });
+
+  window.addEventListener("cloud:gamedata", function(e){
+    applyGameData(e.detail);
+  });
+
+  // First snapshot for a signed-in user: an existing doc wins over local (it's the latest
+  // write from any of your devices); a missing doc means this is a brand-new account, so seed
+  // it from local progress instead. cloud.js already filters out our own write's echo (and any
+  // now-stale confirmation of a superseded earlier write) before this ever fires, so every
+  // event that reaches here is genuinely newer than what we last applied or wrote ourselves.
+  window.addEventListener("cloud:userdoc", function(e){
+    var msg = e.detail;
+    if (!cloudUser) return;
+    if (msg.exists) {
+      try {
+        applyingRemoteState = true;
+        state = sanitizeState(msg.data);
+        save(); // localStorage only - scheduleCloudSave() no-ops while applyingRemoteState
+        render();
+        setStatus("acctSyncStatus", "Synced.", "ok");
+      } catch (err) {
+        setStatus("acctSyncStatus", "Cloud progress looked invalid, kept this device's copy.", "err");
+      } finally {
+        applyingRemoteState = false;
+      }
+    } else if (!seededCloudDoc) {
+      seededCloudDoc = true;
+      window.Cloud.saveUserDoc(cloudUser.uid, state).catch(function(){});
+    }
+  });
+
+  document.getElementById("acctSignIn").addEventListener("click", function(){
+    if (!window.Cloud) return;
+    setStatus("acctSyncStatus", "Opening sign-in…", "");
+    window.Cloud.signIn().catch(function(err){
+      setStatus("acctSyncStatus", "Sign-in failed: " + err.message, "err");
+    });
+  });
+  document.getElementById("acctSignOut").addEventListener("click", function(){
+    if (window.Cloud) window.Cloud.signOut();
+  });
+
+  // ---- admin game-data editor (only visible once cloud:admin confirms this uid) ----------
+  document.getElementById("admLoad").addEventListener("click", function(){
+    document.getElementById("admData").value = JSON.stringify(getActiveGameData(), null, 2);
+    setStatus("admStatus", "Loaded the currently active data.", "ok");
+  });
+  document.getElementById("admValidate").addEventListener("click", function(){
+    var parsed;
+    try { parsed = JSON.parse(document.getElementById("admData").value); }
+    catch (e) { setStatus("admStatus", "Not valid JSON: " + e.message, "err"); return; }
+    var v = validateGameData(parsed);
+    setStatus("admStatus", v.ok ? "Looks good." : "Problems found: " + v.errors.join("; "), v.ok ? "ok" : "err");
+  });
+  document.getElementById("admPublish").addEventListener("click", function(){
+    if (!window.Cloud || !cloudUser) return;
+    var parsed;
+    try { parsed = JSON.parse(document.getElementById("admData").value); }
+    catch (e) { setStatus("admStatus", "Not valid JSON: " + e.message, "err"); return; }
+    var v = validateGameData(parsed);
+    if (!v.ok) { setStatus("admStatus", "Fix these first: " + v.errors.join("; "), "err"); return; }
+    setStatus("admStatus", "Publishing…", "");
+    window.Cloud.publishGameData(parsed, cloudUser.uid).then(function(){
+      applyGameData(parsed); // instant local feedback; the live snapshot confirms it moments later
+      setStatus("admStatus", "Published — live on every device now.", "ok");
+    }).catch(function(err){
+      setStatus("admStatus", "Publish failed: " + err.message, "err");
+    });
   });
 
   render();
