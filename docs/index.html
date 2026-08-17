@@ -1295,6 +1295,17 @@ var CYCLES={
 
   // Validates a candidate game-data object before it's applied or published. Never throws -
   // returns {ok:true} or {ok:false, errors:[...]} so a bad admin edit can be reported inline.
+  // A cell's rarity ends up unescaped in several places (a CSS class suffix, an HTML
+  // attribute, and plain text) because it always used to come from reviewed source code. Now
+  // that it can come from a remote, admin-published document, every rarity value is checked
+  // against this fixed whitelist (plus "?" for an undocumented placeholder cell) rather than
+  // trying to safely escape it at each of those call sites - a value that isn't on the list is
+  // rejected outright, so nothing ever reaches the page unescaped in the first place.
+  var VALID_RARITIES = RARITY_ORDER.concat(["?"]);
+  // Same idea for a rarity-CLASS name (Common/Rare/Epic/...): it ends up as a CSS class suffix
+  // too (rc-<class>), so it's restricted to a safe identifier shape rather than escaped.
+  var SAFE_IDENT = /^[A-Za-z][A-Za-z0-9_]*$/;
+
   function validateGameData(data){
     var errors = [];
     function fail(msg){ errors.push(msg); }
@@ -1318,12 +1329,35 @@ var CYCLES={
           row.forEach(function(cell){
             if (!cell || typeof cell !== "object") { fail("Cycle " + c + " rebirth " + (i + 1) + " has an invalid cell."); return; }
             if (!cell.u && (typeof cell.n !== "string" || !cell.n)) fail("Cycle " + c + " rebirth " + (i + 1) + " has a cell with no droid name.");
+            if (VALID_RARITIES.indexOf(cell.r) === -1) fail("Cycle " + c + " rebirth " + (i + 1) + " has an unrecognised rarity \"" + cell.r + "\".");
           });
         });
       }
     }
-    if (data.rarityClasses && typeof data.rarityClasses !== "object") fail("rarityClasses must be an object.");
-    if (data.chips && (!Array.isArray(data.chips.cols) || !Array.isArray(data.chips.rows))) fail("chips must have cols[] and rows[].");
+    // chips and crystals are required, not optional: the app has nowhere sensible to fall
+    // back to for either (a blank chips table, or every crystal reward silently vanishing).
+    if (!data.crystals || typeof data.crystals !== "object" || Array.isArray(data.crystals)) {
+      fail("crystals is missing or not an object.");
+    }
+    if (!data.chips || !Array.isArray(data.chips.cols) || !Array.isArray(data.chips.rows)) {
+      fail("chips must have cols[] and rows[].");
+    } else {
+      data.chips.rows.forEach(function(row, i){
+        if (!Array.isArray(row) || row.length < 1 || typeof row[0] !== "string") {
+          fail("chips.rows[" + i + "] must start with a text label.");
+        }
+      });
+    }
+    if (data.rarityClasses) {
+      // (an array is truthy too, and would otherwise sail through "typeof === object" and
+      // silently wipe every droid's rarity-class name colour once applied - see applyGameData)
+      if (typeof data.rarityClasses !== "object" || Array.isArray(data.rarityClasses)) {
+        fail("rarityClasses must be an object.");
+      } else for (var k in data.rarityClasses) {
+        if (!SAFE_IDENT.test(k)) fail("rarityClasses key \"" + k + "\" isn't a plain identifier.");
+        if (!Array.isArray(data.rarityClasses[k])) fail("rarityClasses." + k + " must be an array of droid names.");
+      }
+    }
 
     return { ok: errors.length === 0, errors: errors };
   }
@@ -1339,8 +1373,10 @@ var CYCLES={
 
     COSTS = data.costs;
     MAXLVL = parseInt(data.maxlvl, 10);
-    CRYSTALS = data.crystals || {};
-    CHIPS = data.chips || CHIPS;
+    // crystals/chips are validated as required above, so these are plain assignments, not
+    // fallbacks; rarityClasses stays genuinely optional, so it keeps its "|| existing" default.
+    CRYSTALS = data.crystals;
+    CHIPS = data.chips;
     RARITY_CLASSES = data.rarityClasses || RARITY_CLASSES;
     DROID_RARITY = buildDroidRarityMap(RARITY_CLASSES);
     META = { version: data.version || META.version };
@@ -1518,7 +1554,7 @@ var CYCLES={
       h += '<div class="row' + (n === L ? " now" : "") + (n >= state.threshold ? " late" : "") + '"' +
            (n === L ? ' id="nowrow"' : "") + '>' +
            '<div class="lv" data-lv="' + n + '" title="Press and hold to set as your current rebirth"><b>' + n + '</b><i>' + COSTS[i] + '</i>' +
-             (CRYSTALS[n] ? '<span class="cry">\u25C6' + CRYSTALS[n] + '</span>' : '') +
+             (CRYSTALS[n] ? '<span class="cry">\u25C6' + esc(CRYSTALS[n]) + '</span>' : '') +
              (n === L ?
                '<div class="chartstep">' +
                  '<button class="cst" data-d="-1"' + (L <= 1 ? ' disabled' : '') +
@@ -2039,17 +2075,19 @@ var CYCLES={
 
   // reference table - re-run after a cloud game-data update, since CHIPS/META may have changed
   function renderChipsTable(){
+    // esc() everything here too: chips/version can now come from a published cloud update,
+    // same reasoning as the rarity whitelist above - don't trust it as pre-sanitized HTML.
     var h = "<tr><th>Rarity</th>";
-    for (var i = 0; i < CHIPS.cols.length; i++) h += "<th>" + CHIPS.cols[i] + "</th>";
+    for (var i = 0; i < CHIPS.cols.length; i++) h += "<th>" + esc(CHIPS.cols[i]) + "</th>";
     h += "</tr>";
     for (var r = 0; r < CHIPS.rows.length; r++) {
-      h += "<tr><td>" + CHIPS.rows[r][0] + "</td>";
-      for (var c = 1; c < CHIPS.rows[r].length; c++) h += "<td>" + CHIPS.rows[r][c] + "</td>";
+      h += "<tr><td>" + esc(CHIPS.rows[r][0]) + "</td>";
+      for (var c = 1; c < CHIPS.rows[r].length; c++) h += "<td>" + esc(CHIPS.rows[r][c]) + "</td>";
       h += "</tr>";
     }
     document.getElementById("chips").innerHTML = h;
     document.getElementById("foot").innerHTML =
-      "Chart data: Droid Tycoon " + META.version + "<br>Money costs are identical in every cycle.";
+      "Chart data: Droid Tycoon " + esc(META.version) + "<br>Money costs are identical in every cycle.";
   }
   renderChipsTable();
 

@@ -17,8 +17,8 @@
 //     "cloud:admin"    detail: boolean                        - is the signed-in user an admin
 //     "cloud:gamedata" detail: <config/gamedata doc data>      - fires on every change, incl. first load
 //     "cloud:userdoc"  detail: {exists, data} - the signed-in user's progress doc (already
-//                       filtered so every event fired here is newer than anything this tab has
-//                       itself written or applied - see the userDocHWM comment below)
+//                       filtered so this never fires for an echo of a write this tab made
+//                       itself - see the sessionId comment below)
 //   this file EXPOSES window.Cloud = {
 //     signIn(), signOut(),
 //     saveUserDoc(uid, state) -> Promise,
@@ -129,17 +129,19 @@ async function init() {
   // ---- auth ----------------------------------------------------------------------------
   let stopUserWatch = null;
 
-  // High-water mark of the newest progress write's client-side timestamp (_localTs) that this
-  // tab has either written itself or already applied. A snapshot at or below the mark is
-  // ignored - which covers both the immediate optimistic echo of our own write AND a *later,
-  // server-confirmed* echo of an already-superseded write, which can otherwise arrive after a
-  // newer local edit if two writes from this tab pipeline quickly (e.g. the very first "seed
-  // the cloud doc" write, followed seconds later by a real edit, before the seed write's own
-  // ack has come back - relying on Firestore's own hasPendingWrites flag alone isn't enough to
-  // catch that case, since the seed write's *confirmed* snapshot is not pending, just stale).
-  // Anything genuinely newer - including a change made on another device - always has a
-  // strictly greater timestamp and is applied normally.
-  let userDocHWM = 0;
+  // A per-page-load id, stamped onto every progress write this tab makes (_writerSession). It
+  // is NOT about ordering writes in time - a wall-clock/timestamp comparison across devices
+  // would be vulnerable to ordinary clock skew (a device running a few minutes slow could have
+  // its genuinely newer edits permanently discarded as "stale"). Instead the listener asks a
+  // simpler, clock-free question: "was the doc's last writer literally this tab?" If so, we
+  // already have that state applied locally (we just wrote it) and can ignore the confirmation
+  // - covering both the immediate optimistic echo AND a later, server-confirmed echo of an
+  // already-superseded write from this same tab (e.g. the very first "seed the cloud doc"
+  // write, confirmed seconds after a real edit already moved past it - Firestore's own
+  // hasPendingWrites flag alone doesn't catch that case, since that confirmation isn't
+  // pending, just stale). Anything written by a DIFFERENT session - necessarily a different
+  // device, since a page reload gets a fresh id too - always has a different id and is applied.
+  const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
 
   onAuthStateChanged(auth, function (user) {
     fire("cloud:auth", user ? {
@@ -148,7 +150,6 @@ async function init() {
 
     if (stopUserWatch) { stopUserWatch(); stopUserWatch = null; }
     fire("cloud:admin", false);
-    userDocHWM = 0;
     if (!user) return;
 
     // Admin check: existence of admins/{uid}. A stranger's read of their own admin doc is
@@ -159,10 +160,9 @@ async function init() {
     }).catch(function () { fire("cloud:admin", false); });
 
     stopUserWatch = onSnapshot(doc(db, "users", user.uid), function (snap) {
+      if (snap.metadata.hasPendingWrites) return; // always our own not-yet-confirmed write
       const data = snap.exists() ? snap.data() : null;
-      const incomingTs = (data && typeof data._localTs === "number") ? data._localTs : Infinity;
-      if (incomingTs <= userDocHWM) return; // our own echo, or a now-stale confirmation
-      userDocHWM = incomingTs;
+      if (data && data._writerSession === sessionId) return; // confirms a write we made ourselves
       fire("cloud:userdoc", { exists: snap.exists(), data: data });
     }, function (err) {
       console.warn("[cloud] user doc watch error", err);
@@ -194,15 +194,19 @@ async function init() {
     },
     signOut: function () { return fbSignOut(auth); },
     saveUserDoc: function (uid, state) {
-      // Stamp with the current high-water mark BEFORE the write goes out (not after it
-      // resolves), so even the immediate optimistic snapshot this same write produces is
-      // already correctly suppressed by the listener above.
-      const ts = Date.now();
-      userDocHWM = Math.max(userDocHWM, ts);
-      return setDoc(doc(db, "users", uid), Object.assign({}, state, { updatedAt: serverTimestamp(), _localTs: ts }));
+      return setDoc(doc(db, "users", uid), Object.assign({}, state, {
+        updatedAt: serverTimestamp(), _writerSession: sessionId
+      }));
     },
     publishGameData: function (data, uid) {
-      return setDoc(doc(db, "config", "gamedata"), Object.assign(gameDataToFirestore(data), {
+      // gameDataToFirestore can throw on a malformed shape (e.g. a caller that bypasses the
+      // admin editor's own validateGameData check); wrap it so that surfaces as a normal
+      // rejected promise like any other failed write, instead of an uncaught exception that
+      // leaves the editor's "Publishing..." status stuck forever.
+      let payload;
+      try { payload = gameDataToFirestore(data); }
+      catch (e) { return Promise.reject(e); }
+      return setDoc(doc(db, "config", "gamedata"), Object.assign(payload, {
         updatedAt: serverTimestamp(), updatedBy: uid
       }));
     }
