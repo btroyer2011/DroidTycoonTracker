@@ -76,11 +76,13 @@ body,:root[data-theme="light"] body{
 .timerBarLabel{
   font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700;
 }
+.timerBarToggles{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .alertToggle{
   appearance:none;cursor:pointer;display:flex;align-items:center;gap:6px;
   background:var(--panel2);border:2px solid var(--line);border-radius:999px;
   padding:5px 10px;font:700 11px/1 inherit;color:var(--dim);
 }
+.alertToggle[hidden]{display:none}
 .alertToggle .alertDot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none}
 .alertToggle[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan)}
 .alertToggle[aria-pressed="true"] .alertDot{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
@@ -150,28 +152,6 @@ header .lede{
 .cyc b{display:block;font-size:17px;margin-top:2px;color:inherit}
 .cyc[aria-pressed="true"]{border-color:var(--green);color:var(--green);background:#0d1a14}
 
-/* ---- level stepper ---- */
-.stepper{
-  background:var(--panel);border:2px solid var(--line);border-radius:14px;
-  padding:12px;display:grid;grid-template-columns:56px 1fr 56px;gap:10px;align-items:center;
-  margin-bottom:8px;
-}
-.stepper.end{border-color:#4a3a12}
-.step{
-  appearance:none;border:2px solid var(--line);background:var(--panel2);color:var(--ink);
-  border-radius:12px;height:56px;font:800 26px/1 inherit;cursor:pointer;
-}
-.step:disabled{opacity:.3;cursor:default}
-.step:not(:disabled):active{background:#222232}
-.lvlbox{text-align:center}
-.lvlbox .k{font-size:10px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
-.lvlbox .n{font-size:44px;font-weight:800;line-height:1;color:var(--green);font-style:italic}
-.lvlbox .n.late{color:var(--red)}
-.lvlbox .cost{font-size:17px;font-weight:700;margin-top:2px}
-.lvlbox .of{font-size:11px;color:var(--dim);margin-top:2px}
-.bar{height:4px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-bottom:10px}
-.bar i{display:block;height:100%;background:var(--green);transition:width .18s}
-.bar i.late{background:var(--red)}
 /* pinned above everything (including the search dock) so it's reachable from anywhere on
    the page; solid background covers content scrolling underneath */
 .resetrow{
@@ -588,10 +568,17 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <div class="timerBar" id="timerBar">
     <div class="timerBarTop">
       <span class="timerBarLabel">Sandcrawler Blueprint Countdowns</span>
-      <button class="alertToggle" id="alertToggle" aria-pressed="true">
-        <span class="alertDot" aria-hidden="true"></span>
-        <span id="alertToggleLabel">Sandcrawler Alerts: On</span>
-      </button>
+      <div class="timerBarToggles">
+        <!-- Hidden until the Wake Lock API is detected; unsupported browsers never see it. -->
+        <button class="alertToggle" id="wakeToggle" aria-pressed="false" hidden>
+          <span class="alertDot" aria-hidden="true"></span>
+          <span id="wakeToggleLabel">Keep Screen Awake: Off</span>
+        </button>
+        <button class="alertToggle" id="alertToggle" aria-pressed="true">
+          <span class="alertDot" aria-hidden="true"></span>
+          <span id="alertToggleLabel">Sandcrawler Alerts: On</span>
+        </button>
+      </div>
     </div>
     <div class="timerRow">
       <div class="timerPill stellar" id="timerPill-stellar">
@@ -618,17 +605,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 
   <div class="cycles" id="cycles"></div>
 
-  <div class="stepper" id="stepper">
-    <button class="step" id="down" aria-label="Previous rebirth">&minus;</button>
-    <div class="lvlbox">
-      <div class="k">Rebirth</div>
-      <div class="n" id="lvlnum">1</div>
-      <div class="cost" id="cost">10K</div>
-      <div class="of" id="of">1 of 35</div>
-    </div>
-    <button class="step" id="up" aria-label="Next rebirth">+</button>
-  </div>
-  <div class="bar"><i id="bar"></i></div>
   <div class="resetrow">
     <div class="rowSide rowLeft">
       <button class="cogToggle" id="settingsToggle" aria-label="Settings" aria-haspopup="dialog">
@@ -1733,24 +1709,11 @@ var CYCLES={
   searchInput.addEventListener("blur", collapseSearchIfEmpty);
 
   function render(){
-    var L = lvl();
-
     document.getElementById("bkExport").value = exportCode();
 
     document.querySelectorAll(".cyc").forEach(function(b){
       b.setAttribute("aria-pressed", String(+b.dataset.c === state.cycle));
     });
-
-    var ln = document.getElementById("lvlnum");
-    ln.textContent = L;
-    ln.className = "n" + (L >= state.threshold ? " late" : "");
-    document.getElementById("cost").textContent = COSTS[L - 1];
-    document.getElementById("of").textContent = L + " of " + MAXLVL;
-    var bar = document.getElementById("bar");
-    bar.style.width = (L / MAXLVL * 100) + "%";
-    bar.className = L >= state.threshold ? "late" : "";
-    document.getElementById("down").disabled = L <= 1;
-    document.getElementById("up").disabled = L >= MAXLVL;
 
     // reflect the current sell-early threshold everywhere it is shown
     var T = state.threshold;
@@ -1767,9 +1730,6 @@ var CYCLES={
   }
 
   function setLevel(n){ state.levels[state.cycle] = clamp(n); render(); }
-
-  document.getElementById("up").addEventListener("click", function(){ setLevel(lvl() + 1); });
-  document.getElementById("down").addEventListener("click", function(){ setLevel(lvl() - 1); });
 
   // the current row of the full chart carries its own +/- so you can step level without
   // scrolling back to the top. Delegated on the container, which survives re-render.
@@ -2255,6 +2215,82 @@ var CYCLES={
     try { localStorage.setItem(ALERTS_KEY, alertsOn ? "on" : "off"); } catch (e) { /* ignore */ }
     renderAlertToggle();
     if (alertsOn) unlockAudioOnce();
+  });
+
+  // ---- keep-screen-awake toggle (optional; hidden entirely if the Wake Lock API isn't
+  // supported, e.g. older Safari) ----------------------------------------------------------
+  var wakeToggle = document.getElementById("wakeToggle");
+  var wakeToggleLabel = document.getElementById("wakeToggleLabel");
+  var WAKE_KEY = "droidtycoon.keepAwake.v1";
+  var wakeLockSentinel = null;
+  var wakeRequestPending = false; // true only while a request() call is in flight
+  // `wakeWanted` is the single source of truth for what the user asked for; wakeLockSentinel
+  // is just whatever the browser currently happens to be honouring. Every request/release
+  // path checks wakeWanted rather than assuming its own view is still current, since a click
+  // or a visibility change can happen while an earlier request is still in flight.
+  var wakeWanted = false;
+  try { wakeWanted = localStorage.getItem(WAKE_KEY) === "on"; } catch (e) { /* ignore */ }
+
+  function renderWakeToggle(){
+    wakeToggle.setAttribute("aria-pressed", String(!!wakeLockSentinel));
+    wakeToggleLabel.textContent = "Keep Screen Awake: " + (wakeLockSentinel ? "On" : "Off");
+  }
+  renderWakeToggle();
+
+  function requestWakeLock(){
+    // the pending/sentinel guards stop a double-click or a rapid hidden->visible flap from
+    // firing a second concurrent request() while one is already in flight or already held.
+    if (!("wakeLock" in navigator) || wakeRequestPending || wakeLockSentinel) return;
+    wakeRequestPending = true;
+    navigator.wakeLock.request("screen").then(function(sentinel){
+      wakeRequestPending = false;
+      if (!wakeWanted) { sentinel.release().catch(function(){}); return; } // turned off while pending
+      wakeLockSentinel = sentinel;
+      // Fires both when we release it ourselves and when the browser auto-releases it (e.g.
+      // the tab going to the background) - either way, drop our reference and reflect that in
+      // the toggle. The visibilitychange listener below re-requests it if still wanted once
+      // the tab is visible again. The identity check guards against a stale listener from an
+      // already-superseded sentinel clobbering a newer one.
+      sentinel.addEventListener("release", function(){
+        if (wakeLockSentinel === sentinel) { wakeLockSentinel = null; renderWakeToggle(); }
+      });
+      renderWakeToggle();
+    }).catch(function(){
+      // e.g. battery saver mode, or the request was denied for some other reason - fall back
+      // to showing it off rather than leaving the toggle stuck looking "on" with no real lock.
+      wakeRequestPending = false;
+      wakeWanted = false;
+      try { localStorage.setItem(WAKE_KEY, "off"); } catch (e) { /* ignore */ }
+      renderWakeToggle();
+    });
+  }
+
+  if ("wakeLock" in navigator) {
+    wakeToggle.hidden = false;
+    // request() rejects if the document isn't visible (e.g. the page loaded in a background
+    // tab) - skip the attempt entirely rather than let that reject the promise and wipe the
+    // saved preference below; the visibilitychange listener already re-requests once the tab
+    // is actually visible, so wakeWanted staying true here is enough.
+    if (wakeWanted && document.visibilityState === "visible") requestWakeLock();
+  }
+
+  wakeToggle.addEventListener("click", function(){
+    wakeWanted = !wakeWanted;
+    try { localStorage.setItem(WAKE_KEY, wakeWanted ? "on" : "off"); } catch (e) { /* ignore */ }
+    if (wakeWanted) {
+      requestWakeLock();
+    } else if (wakeLockSentinel) {
+      var sentinel = wakeLockSentinel;
+      wakeLockSentinel = null;
+      sentinel.release().catch(function(){});
+      renderWakeToggle();
+    }
+    // if a request is still in flight when wakeWanted flips to false, requestWakeLock's own
+    // resolve handler above releases it immediately once it arrives - nothing more to do here.
+  });
+
+  document.addEventListener("visibilitychange", function(){
+    if (document.visibilityState === "visible" && wakeWanted && !wakeLockSentinel) requestWakeLock();
   });
 
   // `soundOwed` tracks, per timer, whether it still owes its 30-second warning SOUND for the
