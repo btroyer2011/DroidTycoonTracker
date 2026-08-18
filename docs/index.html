@@ -2267,7 +2267,11 @@ var CYCLES={
 
   if ("wakeLock" in navigator) {
     wakeToggle.hidden = false;
-    if (wakeWanted) requestWakeLock();
+    // request() rejects if the document isn't visible (e.g. the page loaded in a background
+    // tab) - skip the attempt entirely rather than let that reject the promise and wipe the
+    // saved preference below; the visibilitychange listener already re-requests once the tab
+    // is actually visible, so wakeWanted staying true here is enough.
+    if (wakeWanted && document.visibilityState === "visible") requestWakeLock();
   }
 
   wakeToggle.addEventListener("click", function(){
