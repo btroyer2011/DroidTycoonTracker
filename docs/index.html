@@ -2223,6 +2223,11 @@ var CYCLES={
   var wakeToggleLabel = document.getElementById("wakeToggleLabel");
   var WAKE_KEY = "droidtycoon.keepAwake.v1";
   var wakeLockSentinel = null;
+  var wakeRequestPending = false; // true only while a request() call is in flight
+  // `wakeWanted` is the single source of truth for what the user asked for; wakeLockSentinel
+  // is just whatever the browser currently happens to be honouring. Every request/release
+  // path checks wakeWanted rather than assuming its own view is still current, since a click
+  // or a visibility change can happen while an earlier request is still in flight.
   var wakeWanted = false;
   try { wakeWanted = localStorage.getItem(WAKE_KEY) === "on"; } catch (e) { /* ignore */ }
 
@@ -2233,21 +2238,27 @@ var CYCLES={
   renderWakeToggle();
 
   function requestWakeLock(){
-    if (!("wakeLock" in navigator)) return;
+    // the pending/sentinel guards stop a double-click or a rapid hidden->visible flap from
+    // firing a second concurrent request() while one is already in flight or already held.
+    if (!("wakeLock" in navigator) || wakeRequestPending || wakeLockSentinel) return;
+    wakeRequestPending = true;
     navigator.wakeLock.request("screen").then(function(sentinel){
+      wakeRequestPending = false;
+      if (!wakeWanted) { sentinel.release().catch(function(){}); return; } // turned off while pending
       wakeLockSentinel = sentinel;
       // Fires both when we release it ourselves and when the browser auto-releases it (e.g.
       // the tab going to the background) - either way, drop our reference and reflect that in
       // the toggle. The visibilitychange listener below re-requests it if still wanted once
-      // the tab is visible again.
+      // the tab is visible again. The identity check guards against a stale listener from an
+      // already-superseded sentinel clobbering a newer one.
       sentinel.addEventListener("release", function(){
-        wakeLockSentinel = null;
-        renderWakeToggle();
+        if (wakeLockSentinel === sentinel) { wakeLockSentinel = null; renderWakeToggle(); }
       });
       renderWakeToggle();
     }).catch(function(){
       // e.g. battery saver mode, or the request was denied for some other reason - fall back
       // to showing it off rather than leaving the toggle stuck looking "on" with no real lock.
+      wakeRequestPending = false;
       wakeWanted = false;
       try { localStorage.setItem(WAKE_KEY, "off"); } catch (e) { /* ignore */ }
       renderWakeToggle();
@@ -2260,18 +2271,18 @@ var CYCLES={
   }
 
   wakeToggle.addEventListener("click", function(){
-    if (wakeLockSentinel) {
-      wakeWanted = false;
-      try { localStorage.setItem(WAKE_KEY, "off"); } catch (e) { /* ignore */ }
+    wakeWanted = !wakeWanted;
+    try { localStorage.setItem(WAKE_KEY, wakeWanted ? "on" : "off"); } catch (e) { /* ignore */ }
+    if (wakeWanted) {
+      requestWakeLock();
+    } else if (wakeLockSentinel) {
       var sentinel = wakeLockSentinel;
       wakeLockSentinel = null;
       sentinel.release().catch(function(){});
       renderWakeToggle();
-    } else {
-      wakeWanted = true;
-      try { localStorage.setItem(WAKE_KEY, "on"); } catch (e) { /* ignore */ }
-      requestWakeLock();
     }
+    // if a request is still in flight when wakeWanted flips to false, requestWakeLock's own
+    // resolve handler above releases it immediately once it arrives - nothing more to do here.
   });
 
   document.addEventListener("visibilitychange", function(){
