@@ -2207,7 +2207,20 @@ var CYCLES={
   // defaults to a single chime for the 30-second warning.
   function playAlertBeep(times){
     if (!audioCtx) return;
-    if (audioCtx.state === "suspended") audioCtx.resume().catch(function(){});
+    // Chrome (and others) auto-suspend an AudioContext that hasn't played anything for a
+    // while, to save power - and these alerts are infrequent by design (15-60+ minutes apart),
+    // so the context is often suspended again by the time the next one is due. resume() is
+    // async: scheduling oscillators against audioCtx.currentTime BEFORE it actually resolves
+    // is a race that can silently drop the sound, which is exactly the "sometimes I hear it,
+    // sometimes I don't" symptom - so the actual scheduling always waits for resume() first.
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().then(function(){ scheduleBeep(times); }).catch(function(){});
+    } else {
+      scheduleBeep(times);
+    }
+  }
+
+  function scheduleBeep(times){
     var reps = times || 1, chimeSpacing = 0.4, t0 = audioCtx.currentTime;
     for (var r = 0; r < reps; r++) {
       (function(repStart){
