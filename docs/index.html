@@ -2157,8 +2157,20 @@ var CYCLES={
   var audioCtx = null;
   function unlockAudioOnce(){
     if (audioCtx) return;
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-    catch (e) { /* Web Audio unavailable - alerts just stay silent, the flash still works */ }
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume().catch(function(){});
+      // iOS Safari needs actual audio playback started synchronously within the very gesture
+      // that creates the context - merely constructing it (or calling resume() later from a
+      // timer, which is all the alerts themselves do) doesn't reliably unlock later,
+      // timer-triggered playback there. A near-silent, near-instant oscillator right here
+      // "warms up" the whole audio session for every chime that follows.
+      var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.01);
+    } catch (e) { /* Web Audio unavailable - alerts just stay silent, the flash still works */ }
   }
   document.addEventListener("click", unlockAudioOnce, { once: true });
   document.addEventListener("touchstart", unlockAudioOnce, { once: true, passive: true });
