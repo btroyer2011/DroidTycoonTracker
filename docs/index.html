@@ -61,6 +61,55 @@ body,:root[data-theme="light"] body{
 .movedBannerSub{margin:0;max-width:520px;font-size:11px;font-weight:500;color:#d9b466}
 .movedBannerSub b{font-weight:800;color:var(--amber)}
 
+/* ---- sandcrawler blueprint timers ---- */
+.timerBar{
+  /* top is a fallback (0) - syncStickyOffsets() sets the real value once the moved-banner's
+     height (if any) is known, same as .resetrow/.searchDock further down the sticky stack. */
+  position:sticky;top:0;z-index:27;
+  background:#0c0c12;border-bottom:2px solid var(--line);
+  padding:8px 12px 10px;box-shadow:0 8px 14px -10px #000;
+}
+.timerBarTop{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+  margin-bottom:8px;
+}
+.timerBarLabel{
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700;
+}
+.alertToggle{
+  appearance:none;cursor:pointer;display:flex;align-items:center;gap:6px;
+  background:var(--panel2);border:2px solid var(--line);border-radius:999px;
+  padding:5px 10px;font:700 11px/1 inherit;color:var(--dim);
+}
+.alertToggle .alertDot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none}
+.alertToggle[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan)}
+.alertToggle[aria-pressed="true"] .alertDot{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.timerRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.timerPill{
+  min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;
+  border-radius:10px;padding:8px 10px;overflow:hidden;
+}
+.timerPill .timerName{
+  font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.timerPill .timerTime{
+  font:800 17px/1 inherit;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);white-space:nowrap;flex:none;
+}
+.timerPill.stellar{background:linear-gradient(100deg,#e0a83c,#241c0c 85%)}
+.timerPill.mythic{background:linear-gradient(100deg,#c22a6e,#28091a 85%)}
+.timerPill.galactic{background:linear-gradient(100deg,#7d3fd6,#1c1030 85%)}
+/* fires once, for a few seconds, starting exactly when the 30-second warning is due -
+   removed and re-added by JS each cycle so the animation can restart cleanly next time. */
+.timerPill.flash{animation:timerFlash .5s ease-in-out 6}
+@keyframes timerFlash{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}
+  50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 14px 2px rgba(255,255,255,.5)}
+}
+@media (max-width:460px){
+  .timerRow{grid-template-columns:1fr}
+}
+
 /* ---- header ---- */
 header{
   padding:16px 0 10px; text-align:center;
@@ -521,6 +570,30 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
 <body>
 
 <div class="wrap">
+  <div class="timerBar" id="timerBar">
+    <div class="timerBarTop">
+      <span class="timerBarLabel">Sandcrawler Blueprint Countdowns</span>
+      <button class="alertToggle" id="alertToggle" aria-pressed="true">
+        <span class="alertDot" aria-hidden="true"></span>
+        <span id="alertToggleLabel">Sandcrawler Alerts: On</span>
+      </button>
+    </div>
+    <div class="timerRow">
+      <div class="timerPill stellar" id="timerPill-stellar">
+        <span class="timerName">Stellar Blueprint</span>
+        <span class="timerTime" id="timerTime-stellar">--:--</span>
+      </div>
+      <div class="timerPill mythic" id="timerPill-mythic">
+        <span class="timerName">Mythic Blueprint</span>
+        <span class="timerTime" id="timerTime-mythic">--:--</span>
+      </div>
+      <div class="timerPill galactic" id="timerPill-galactic">
+        <span class="timerName">Galactic Blueprint</span>
+        <span class="timerTime" id="timerTime-galactic">--:--</span>
+      </div>
+    </div>
+  </div>
+
   <header>
     <h1>Super Rebirth Tracker</h1>
     <div class="sub">Droid Tycoon</div>
@@ -2033,21 +2106,25 @@ var CYCLES={
   renderChipsTable();
 
   // ---- sticky stack offsets --------------------------------------------------------------
-  // The moved-banner (Artifact build only) and the reset bar both sit above the sticky search
-  // dock, and the banner's own height changes with how its sub-line wraps at different widths -
-  // so their offsets are measured at runtime instead of hardcoded, and re-measured on resize.
+  // The moved-banner (Artifact build only), the blueprint timer bar, and the reset bar all
+  // sit above the sticky search dock, and their heights change with how they wrap at
+  // different widths - so their offsets are measured at runtime instead of hardcoded, and
+  // re-measured on resize.
   function syncStickyOffsets(){
     var banner = document.querySelector(".movedBanner");
     var bH = banner ? banner.getBoundingClientRect().height : 0;
+    var timerBar = document.getElementById("timerBar");
+    timerBar.style.top = bH + "px";
+    var tH = timerBar.getBoundingClientRect().height;
     var reset = document.getElementById("reset").closest(".resetrow");
-    reset.style.top = bH + "px";
+    reset.style.top = (bH + tH) + "px";
     var rH = reset.getBoundingClientRect().height;
     var dock = document.querySelector(".searchDock");
-    dock.style.top = (bH + rH) + "px";
+    dock.style.top = (bH + tH + rH) + "px";
     var dH = dock.getBoundingClientRect().height;
     // used by .row's scroll-margin-top, so scrollIntoView clears the whole stack, not just
     // the reset bar - the search dock's own height varies too (hint text vs. results list)
-    document.documentElement.style.setProperty("--stackH", (bH + rH + dH + 12) + "px");
+    document.documentElement.style.setProperty("--stackH", (bH + tH + rH + dH + 12) + "px");
   }
   syncStickyOffsets();
   var stickyResizeTimer = null;
@@ -2055,6 +2132,115 @@ var CYCLES={
     clearTimeout(stickyResizeTimer);
     stickyResizeTimer = setTimeout(syncStickyOffsets, 120);
   });
+
+  // ---- sandcrawler blueprint timers -------------------------------------------------------
+  // Three fixed, real-world-clock countdowns to the next Stellar/Mythic/Galactic Blueprint
+  // drop, recomputed fresh from Date() every second rather than counted down from a stored
+  // value - so they're always correct even after the tab was backgrounded for a while.
+  var BLUEPRINT_TIMERS = [
+    { id: "stellar", marks: [0] },       // top of every hour
+    { id: "mythic", marks: [55] },       // :55 past every hour
+    { id: "galactic", marks: [15, 45] }  // :15 and :45 past every hour
+  ];
+  var ALERT_LEAD_SECONDS = 30;
+  var ALERTS_KEY = "droidtycoon.sandcrawlerAlerts.v1";
+
+  // Seconds from now until the next time the clock's minute-of-hour matches one of `marks`
+  // (each mark checked at :00 seconds). Scanning this hour and next covers every case, since
+  // the longest possible gap between two marks is 60 minutes.
+  function secondsToNextMark(marks){
+    var now = new Date(), best = Infinity;
+    for (var h = 0; h <= 1; h++) {
+      for (var i = 0; i < marks.length; i++) {
+        var t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + h, marks[i], 0, 0);
+        var diff = Math.round((t - now) / 1000);
+        if (diff >= 0 && diff < best) best = diff;
+      }
+    }
+    return best;
+  }
+
+  function formatTimer(s){
+    var m = Math.floor(s / 60), sec = s % 60;
+    return m + ":" + (sec < 10 ? "0" : "") + sec;
+  }
+
+  var alertToggle = document.getElementById("alertToggle");
+  var alertToggleLabel = document.getElementById("alertToggleLabel");
+  var alertsOn = true;
+  try { alertsOn = localStorage.getItem(ALERTS_KEY) !== "off"; } catch (e) { /* ignore */ }
+
+  function renderAlertToggle(){
+    alertToggle.setAttribute("aria-pressed", String(alertsOn));
+    alertToggleLabel.textContent = "Sandcrawler Alerts: " + (alertsOn ? "On" : "Off");
+  }
+  renderAlertToggle();
+
+  // Web Audio beep, synthesised rather than an embedded audio file - keeps this offline and
+  // adds no asset weight. Browsers block audio until a real user gesture unlocks it, so the
+  // context is created lazily on the page's first tap/click rather than at load time.
+  var audioCtx = null;
+  function unlockAudioOnce(){
+    if (audioCtx) return;
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { /* Web Audio unavailable - alerts just stay silent, the flash still works */ }
+  }
+  document.addEventListener("click", unlockAudioOnce, { once: true });
+  document.addEventListener("touchstart", unlockAudioOnce, { once: true, passive: true });
+
+  function playAlertBeep(){
+    if (!audioCtx) return;
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(function(){});
+    var t0 = audioCtx.currentTime;
+    [880, 1108].forEach(function(freq, i){
+      var start = t0 + i * 0.16;
+      var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + 0.17);
+    });
+  }
+
+  function flashTimerPill(id){
+    var pill = document.getElementById("timerPill-" + id);
+    pill.classList.remove("flash");
+    void pill.offsetWidth; // restart the CSS animation even if it's still mid-run from earlier
+    pill.classList.add("flash");
+  }
+
+  alertToggle.addEventListener("click", function(){
+    alertsOn = !alertsOn;
+    try { localStorage.setItem(ALERTS_KEY, alertsOn ? "on" : "off"); } catch (e) { /* ignore */ }
+    renderAlertToggle();
+    if (alertsOn) unlockAudioOnce();
+  });
+
+  // `armed` tracks, per timer, whether it still owes its 30-second warning for the CURRENT
+  // countdown cycle - true from just after a mark fires until the 30-second window is next
+  // entered, so the alert (sound + flash) fires exactly once per cycle, not on every tick
+  // while inside that window.
+  var timerArmed = {};
+  BLUEPRINT_TIMERS.forEach(function(t){ timerArmed[t.id] = true; });
+
+  function tickBlueprintTimers(){
+    BLUEPRINT_TIMERS.forEach(function(t){
+      var s = secondsToNextMark(t.marks);
+      document.getElementById("timerTime-" + t.id).textContent = formatTimer(s);
+      if (s > ALERT_LEAD_SECONDS) {
+        timerArmed[t.id] = true;
+      } else if (timerArmed[t.id]) {
+        timerArmed[t.id] = false;
+        if (alertsOn) { flashTimerPill(t.id); playAlertBeep(); }
+      }
+    });
+  }
+  tickBlueprintTimers();
+  setInterval(tickBlueprintTimers, 1000);
 
   // ---- cloud sync (optional; inert until cloud.js reports Firebase is configured) --------
   // Bridges to docs/cloud.js - an ES module, so it can't share closures with this classic
