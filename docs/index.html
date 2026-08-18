@@ -103,12 +103,20 @@ body,:root[data-theme="light"] body{
 .timerPill.stellar{background:linear-gradient(100deg,#e0a83c,#241c0c 85%)}
 .timerPill.mythic{background:linear-gradient(100deg,#c22a6e,#28091a 85%)}
 .timerPill.galactic{background:linear-gradient(100deg,#7d3fd6,#1c1030 85%)}
-/* fires once, for a few seconds, starting exactly when the 30-second warning is due -
-   removed and re-added by JS each cycle so the animation can restart cleanly next time. */
-.timerPill.flash{animation:timerFlash .5s ease-in-out 6}
-@keyframes timerFlash{
-  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}
-  50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 14px 2px rgba(255,255,255,.5)}
+/* pulses continuously for the whole last 30 seconds before a timer's mark - started when that
+   window opens, stopped the instant the mark fires. Independent of the alerts toggle (that
+   only gates the sound); the pulse itself always runs. */
+.timerPill.pulsing{animation:timerPulse 1s ease-in-out infinite}
+@keyframes timerPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0);transform:scale(1)}
+  50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 14px 2px rgba(255,255,255,.5);transform:scale(1.025)}
+}
+/* a few quick pulses right at zero, silently - removed and re-added by JS each cycle so the
+   animation can restart cleanly next time. */
+.timerPill.zeroPulse{animation:timerZeroPulse .35s ease-in-out 3}
+@keyframes timerZeroPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0);transform:scale(1)}
+  50%{box-shadow:0 0 0 4px rgba(255,255,255,1),0 0 18px 4px rgba(255,255,255,.7);transform:scale(1.04)}
 }
 @media (min-width:460px){
   /* enough room to lay each pill out name-left, time-right instead of stacked */
@@ -2213,11 +2221,14 @@ var CYCLES={
     });
   }
 
-  function flashTimerPill(id){
+  function setPulsing(id, on){
+    document.getElementById("timerPill-" + id).classList.toggle("pulsing", on);
+  }
+  function triggerZeroPulse(id){
     var pill = document.getElementById("timerPill-" + id);
-    pill.classList.remove("flash");
+    pill.classList.remove("zeroPulse");
     void pill.offsetWidth; // restart the CSS animation even if it's still mid-run from earlier
-    pill.classList.add("flash");
+    pill.classList.add("zeroPulse");
   }
 
   alertToggle.addEventListener("click", function(){
@@ -2227,30 +2238,52 @@ var CYCLES={
     if (alertsOn) unlockAudioOnce();
   });
 
-  // `armed` tracks, per timer, whether it still owes its 30-second warning for the CURRENT
-  // countdown cycle - true whenever we're outside the 30-second window (so it's ready to fire
-  // once we enter one), false only once the alert has actually fired inside the window. Seeded
-  // from each timer's real starting position (not just `true`) so a page load that happens to
-  // land inside a window doesn't immediately fire an alert with no lead-in; and `armed` is only
-  // ever consumed by actually firing (which requires alertsOn), so turning alerts on partway
-  // through an already-open window still gets that cycle's alert on the very next tick instead
-  // of silently skipping it.
-  var timerArmed = {};
+  // `soundOwed` tracks, per timer, whether it still owes its 30-second warning SOUND for the
+  // CURRENT countdown cycle - true whenever we're outside the 30-second window (so it's ready
+  // to fire once we enter one), false only once the sound has actually played inside the
+  // window. Seeded from each timer's real starting position (not just `true`) so a page load
+  // that happens to land inside a window doesn't immediately play a sound with no lead-in; and
+  // it's only ever consumed by actually playing (which requires alertsOn), so turning alerts on
+  // partway through an already-open window still gets that cycle's sound on the very next tick
+  // instead of silently skipping it. The pulsing itself is unrelated to this - see below.
+  var soundOwed = {};
   BLUEPRINT_TIMERS.forEach(function(t){
-    timerArmed[t.id] = secondsToNextMark(t.marks) > ALERT_LEAD_SECONDS;
+    soundOwed[t.id] = secondsToNextMark(t.marks) > ALERT_LEAD_SECONDS;
   });
+  // `prevS[id]` is only used to detect the instant a mark fires - the one tick where "seconds
+  // until next" jumps back up instead of counting down - so the silent zero-pulse can fire
+  // exactly then, however the timer got there.
+  var prevS = {};
+  BLUEPRINT_TIMERS.forEach(function(t){ prevS[t.id] = secondsToNextMark(t.marks); });
 
   function tickBlueprintTimers(){
     BLUEPRINT_TIMERS.forEach(function(t){
       var s = secondsToNextMark(t.marks);
-      document.getElementById("timerTime-" + t.id).textContent = formatTimer(s);
+
+      // pulsing reflects the current second directly (not an edge-triggered one-shot), so it's
+      // always right regardless of alertsOn, page loads, or a backgrounded tab catching up.
+      setPulsing(t.id, s > 0 && s <= ALERT_LEAD_SECONDS);
+
+      // fire the silent zero-pulse exactly once per cycle: either on the one tick that lands
+      // exactly on s===0, or - if a throttled/backgrounded tick skipped straight over that
+      // exact second - the following tick, where "seconds until next" has jumped back up from
+      // somewhere still inside the window. Checked as two mutually exclusive cases so a normal
+      // tick sequence (…,1,0,next-cycle,…) never fires it twice for the same mark.
+      if (s === 0) {
+        triggerZeroPulse(t.id);
+      } else if (prevS[t.id] > 0 && prevS[t.id] <= ALERT_LEAD_SECONDS && s > ALERT_LEAD_SECONDS) {
+        triggerZeroPulse(t.id);
+      }
+
       if (s > ALERT_LEAD_SECONDS) {
-        timerArmed[t.id] = true;
-      } else if (timerArmed[t.id] && alertsOn) {
-        timerArmed[t.id] = false;
-        flashTimerPill(t.id);
+        soundOwed[t.id] = true;
+      } else if (soundOwed[t.id] && alertsOn) {
+        soundOwed[t.id] = false;
         playAlertBeep();
       }
+
+      document.getElementById("timerTime-" + t.id).textContent = formatTimer(s);
+      prevS[t.id] = s;
     });
   }
   tickBlueprintTimers();
