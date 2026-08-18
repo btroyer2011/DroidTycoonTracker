@@ -111,9 +111,9 @@ body,:root[data-theme="light"] body{
   0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0);transform:scale(1)}
   50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 14px 2px rgba(255,255,255,.5);transform:scale(1.025)}
 }
-/* a few quick pulses right at zero, silently - removed and re-added by JS each cycle so the
-   animation can restart cleanly next time. */
-.timerPill.zeroPulse{animation:timerZeroPulse .35s ease-in-out 3}
+/* rapid flash for 3 seconds right at zero (12 x .25s) - removed and re-added by JS each cycle
+   so the animation can restart cleanly next time. */
+.timerPill.zeroPulse{animation:timerZeroPulse .25s ease-in-out 12}
 @keyframes timerZeroPulse{
   0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0);transform:scale(1)}
   50%{box-shadow:0 0 0 4px rgba(255,255,255,1),0 0 18px 4px rgba(255,255,255,.7);transform:scale(1.04)}
@@ -2203,22 +2203,28 @@ var CYCLES={
   document.addEventListener("click", unlockAudioOnce, { once: true });
   document.addEventListener("touchstart", unlockAudioOnce, { once: true, passive: true });
 
-  function playAlertBeep(){
+  // `times` repeats the whole two-tone chime back to back (used at zero, where it plays twice);
+  // defaults to a single chime for the 30-second warning.
+  function playAlertBeep(times){
     if (!audioCtx) return;
     if (audioCtx.state === "suspended") audioCtx.resume().catch(function(){});
-    var t0 = audioCtx.currentTime;
-    [880, 1108].forEach(function(freq, i){
-      var start = t0 + i * 0.16;
-      var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start(start);
-      osc.stop(start + 0.17);
-    });
+    var reps = times || 1, chimeSpacing = 0.4, t0 = audioCtx.currentTime;
+    for (var r = 0; r < reps; r++) {
+      (function(repStart){
+        [880, 1108].forEach(function(freq, i){
+          var start = repStart + i * 0.16;
+          var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+          osc.connect(gain).connect(audioCtx.destination);
+          osc.start(start);
+          osc.stop(start + 0.17);
+        });
+      })(t0 + r * chimeSpacing);
+    }
   }
 
   function setPulsing(id, on){
@@ -2264,15 +2270,16 @@ var CYCLES={
       // always right regardless of alertsOn, page loads, or a backgrounded tab catching up.
       setPulsing(t.id, s > 0 && s <= ALERT_LEAD_SECONDS);
 
-      // fire the silent zero-pulse exactly once per cycle: either on the one tick that lands
+      // fire the zero effects exactly once per cycle: either on the one tick that lands
       // exactly on s===0, or - if a throttled/backgrounded tick skipped straight over that
       // exact second - the following tick, where "seconds until next" has jumped back up from
-      // somewhere still inside the window. Checked as two mutually exclusive cases so a normal
-      // tick sequence (…,1,0,next-cycle,…) never fires it twice for the same mark.
-      if (s === 0) {
+      // somewhere still inside the window. A single combined check so a normal tick sequence
+      // (…,1,0,next-cycle,…) never fires it twice for the same mark.
+      var justHitZero = s === 0 ||
+        (prevS[t.id] > 0 && prevS[t.id] <= ALERT_LEAD_SECONDS && s > ALERT_LEAD_SECONDS);
+      if (justHitZero) {
         triggerZeroPulse(t.id);
-      } else if (prevS[t.id] > 0 && prevS[t.id] <= ALERT_LEAD_SECONDS && s > ALERT_LEAD_SECONDS) {
-        triggerZeroPulse(t.id);
+        if (alertsOn) playAlertBeep(2); // twice, gated by the same alerts toggle as everything else
       }
 
       if (s > ALERT_LEAD_SECONDS) {
