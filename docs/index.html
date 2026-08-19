@@ -2356,6 +2356,12 @@ var CYCLES={
   }
   tickBlueprintTimers();
   setInterval(tickBlueprintTimers, 1000);
+  // syncStickyOffsets() ran earlier against the pre-content "--:--" placeholders and (if
+  // supported) before the wake-lock toggle was unhidden - both can change how many lines
+  // .timerBar wraps onto at narrower widths, which the first sync can't have accounted for.
+  // Re-measure now that both are settled, so .resetrow's sticky offset matches the bar's real
+  // height instead of only self-correcting on the next window resize.
+  syncStickyOffsets();
 
   // ---- cloud sync (optional; inert until cloud.js reports Firebase is configured) --------
   // Bridges to docs/cloud.js - an ES module, so it can't share closures with this classic
