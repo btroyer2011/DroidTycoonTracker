@@ -1052,12 +1052,12 @@ function buildDroidRarityMap(classes){
   var m={}; for (var k in classes) classes[k].forEach(function(n){ m[n]=k; }); return m;
 }
 var DROID_RARITY=buildDroidRarityMap(RARITY_CLASSES);
-var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic"],rows:[
-["Common",10,25,40,80,120],
-["Rare",30,60,100,250,400],
-["Epic",120,180,240,3000,6000],
-["Legend",400,1200,3000,7500,20000],
-["Mythic",4000,8000,20000,40000,70000],
+var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic","Stellar"],rows:[
+["Common",10,25,40,80,120,180],
+["Rare",30,60,100,250,400,750],
+["Epic",120,180,240,3000,6000,8000],
+["Legend",400,1200,3000,7500,20000,24000],
+["Mythic",4000,8000,20000,40000,70000,90000],
 ]};
 var CYCLES={
 1:[
