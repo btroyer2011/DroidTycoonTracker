@@ -2415,15 +2415,20 @@ var CYCLES={
   }
   tickBlueprintTimers();
   setInterval(tickBlueprintTimers, 1000);
-  // Chrome throttles setInterval in a hidden/background tab - after a few minutes it can drop
-  // to roughly once a minute, which is easily sparse enough to jump clean over a 30-second
-  // pulse window without ever landing a tick inside it. The zero flash self-heals from this
-  // (it has a fallback for a skipped tick), but the pulse doesn't - it's just whatever the most
-  // recent tick computed. Re-running the tick the instant the tab becomes visible again fixes
-  // the pulse up immediately instead of waiting for the next (possibly still-throttled) tick.
+  // Chrome throttles setInterval in a hidden/background tab, or even just an unfocused
+  // window that's still fully on-screen - after a few minutes it can drop to roughly once a
+  // minute, which is easily sparse enough to jump clean over a 30-second pulse window without
+  // ever landing a tick inside it. The zero flash self-heals from this (it has a fallback for
+  // a skipped tick), but the pulse doesn't - it's just whatever the most recent tick computed.
+  // "visibilitychange" alone misses the unfocused-but-visible case (e.g. alt-tabbing to
+  // another app without switching browser tabs or minimizing) - visibilityState stays
+  // "visible" there, so only a "focus" listener catches it. Re-running the tick immediately on
+  // either signal fixes the pulse up the instant you're looking again, instead of waiting for
+  // the next (possibly still-throttled) interval tick.
   document.addEventListener("visibilitychange", function(){
     if (document.visibilityState === "visible") tickBlueprintTimers();
   });
+  window.addEventListener("focus", tickBlueprintTimers);
   // syncStickyOffsets() ran earlier against the pre-content "--:--" placeholders and (if
   // supported) before the wake-lock toggle was unhidden - both can change how many lines
   // .timerBar wraps onto at narrower widths, which the first sync can't have accounted for.
