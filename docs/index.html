@@ -1331,6 +1331,10 @@ var CYCLES={
 
 (function(){
   "use strict";
+  // Every caught error in this file is logged here rather than silently swallowed, so a
+  // failure (bad localStorage data, a rejected browser API, a network error) is at least
+  // visible in devtools even where the UI itself falls back quietly or shows its own message.
+  function logCaught(context, err){ if (window.console && console.warn) console.warn(context, err); }
   var KEY = "droidtycoon.rebirth.v1";
   var S = window.SPRITES || {};
   // The rebirth at which the "sell early" (red) block begins. A droid you won't need again
@@ -1354,7 +1358,7 @@ var CYCLES={
         }
         return s;
       }
-    } catch (e) {}
+    } catch (e) { logCaught("Couldn't load saved progress, starting fresh:", e); }
     return { cycle: 1, levels: { 1:1, 2:1, 3:1, 4:1, 5:1 }, owned: {}, ownedV: 2, threshold: THRESH_DEFAULT };
   })();
 
@@ -1381,7 +1385,7 @@ var CYCLES={
   function clamp(n){ n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.min(MAXLVL, Math.max(1, n)); }
   function clampT(n){ n = parseInt(n, 10); if (isNaN(n)) n = THRESH_DEFAULT; return Math.min(MAXLVL, Math.max(1, n)); }
   function save(){
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { logCaught("Couldn't save progress locally:", e); }
     scheduleCloudSave(); // no-op until signed in (see "cloud sync" section below)
   }
   function lvl(){ return state.levels[state.cycle]; }
@@ -1544,8 +1548,8 @@ var CYCLES={
     if (!s) throw new Error("Paste a backup code first.");
     if (s.indexOf(BACKUP_PREFIX) !== 0) throw new Error("That doesn't look like a Rebirth Tracker backup code.");
     var json, obj;
-    try { json = atob(s.slice(BACKUP_PREFIX.length)); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
-    try { obj = JSON.parse(json); } catch (e) { throw new Error("That code is corrupted or incomplete."); }
+    try { json = atob(s.slice(BACKUP_PREFIX.length)); } catch (e) { logCaught("Backup code failed to decode:", e); throw new Error("That code is corrupted or incomplete."); }
+    try { obj = JSON.parse(json); } catch (e) { logCaught("Backup code decoded but wasn't valid JSON:", e); throw new Error("That code is corrupted or incomplete."); }
     return sanitizeState(obj);
   }
 
@@ -2033,7 +2037,7 @@ var CYCLES={
     function fail(){
       box.focus(); box.select();
       var worked = false;
-      try { worked = document.execCommand("copy"); } catch (e) {}
+      try { worked = document.execCommand("copy"); } catch (e) { logCaught("Fallback clipboard copy failed:", e); }
       if (worked) { ok(); return; }
       setStatus("bkCopyStatus", "Couldn't copy automatically. The code above is selected; copy it manually.", "err");
     }
@@ -2065,7 +2069,7 @@ var CYCLES={
   document.getElementById("bkImportBtn").addEventListener("click", function(){
     var parsed;
     try { parsed = parseBackupCode(document.getElementById("bkImportBox").value); }
-    catch (err) { setStatus("bkImportStatus", err.message, "err"); return; }
+    catch (err) { logCaught("Backup import failed:", err); setStatus("bkImportStatus", err.message, "err"); return; }
 
     var ownedCount = 0;
     for (var cy in parsed.owned) ownedCount += Object.keys(parsed.owned[cy]).length;
@@ -2202,7 +2206,7 @@ var CYCLES={
   var alertToggle = document.getElementById("alertToggle");
   var alertToggleLabel = document.getElementById("alertToggleLabel");
   var alertsOn = true;
-  try { alertsOn = localStorage.getItem(ALERTS_KEY) !== "off"; } catch (e) { /* ignore */ }
+  try { alertsOn = localStorage.getItem(ALERTS_KEY) !== "off"; } catch (e) { logCaught("Couldn't read the saved alerts preference:", e); }
 
   function renderAlertToggle(){
     alertToggle.setAttribute("aria-pressed", String(alertsOn));
@@ -2218,7 +2222,7 @@ var CYCLES={
     if (audioCtx) return;
     try {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === "suspended") audioCtx.resume().catch(function(){});
+      if (audioCtx.state === "suspended") audioCtx.resume().catch(function(e){ logCaught("AudioContext.resume() failed during the unlock gesture:", e); });
       // iOS Safari needs actual audio playback started synchronously within the very gesture
       // that creates the context - merely constructing it (or calling resume() later from a
       // timer, which is all the alerts themselves do) doesn't reliably unlock later,
@@ -2229,7 +2233,7 @@ var CYCLES={
       osc.connect(gain).connect(audioCtx.destination);
       osc.start(audioCtx.currentTime);
       osc.stop(audioCtx.currentTime + 0.01);
-    } catch (e) { /* Web Audio unavailable - alerts just stay silent, the flash still works */ }
+    } catch (e) { logCaught("Web Audio unavailable - alerts will stay silent, the flash still works:", e); }
   }
   document.addEventListener("click", unlockAudioOnce, { once: true });
   document.addEventListener("touchstart", unlockAudioOnce, { once: true, passive: true });
@@ -2245,7 +2249,7 @@ var CYCLES={
     // is a race that can silently drop the sound, which is exactly the "sometimes I hear it,
     // sometimes I don't" symptom - so the actual scheduling always waits for resume() first.
     if (audioCtx.state === "suspended") {
-      audioCtx.resume().then(function(){ scheduleBeep(times); }).catch(function(){});
+      audioCtx.resume().then(function(){ scheduleBeep(times); }).catch(function(e){ logCaught("AudioContext.resume() failed before an alert beep:", e); });
     } else {
       scheduleBeep(times);
     }
@@ -2283,7 +2287,7 @@ var CYCLES={
 
   alertToggle.addEventListener("click", function(){
     alertsOn = !alertsOn;
-    try { localStorage.setItem(ALERTS_KEY, alertsOn ? "on" : "off"); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(ALERTS_KEY, alertsOn ? "on" : "off"); } catch (e) { logCaught("Couldn't save the alerts preference:", e); }
     renderAlertToggle();
     if (alertsOn) unlockAudioOnce();
   });
@@ -2300,7 +2304,7 @@ var CYCLES={
   // path checks wakeWanted rather than assuming its own view is still current, since a click
   // or a visibility change can happen while an earlier request is still in flight.
   var wakeWanted = false;
-  try { wakeWanted = localStorage.getItem(WAKE_KEY) === "on"; } catch (e) { /* ignore */ }
+  try { wakeWanted = localStorage.getItem(WAKE_KEY) === "on"; } catch (e) { logCaught("Couldn't read the saved keep-awake preference:", e); }
 
   function renderWakeToggle(){
     wakeToggle.setAttribute("aria-pressed", String(!!wakeLockSentinel));
@@ -2315,7 +2319,7 @@ var CYCLES={
     wakeRequestPending = true;
     navigator.wakeLock.request("screen").then(function(sentinel){
       wakeRequestPending = false;
-      if (!wakeWanted) { sentinel.release().catch(function(){}); return; } // turned off while pending
+      if (!wakeWanted) { sentinel.release().catch(function(e){ logCaught("Releasing an unwanted wake lock failed:", e); }); return; } // turned off while pending
       wakeLockSentinel = sentinel;
       // Fires both when we release it ourselves and when the browser auto-releases it (e.g.
       // the tab going to the background) - either way, drop our reference and reflect that in
@@ -2326,12 +2330,13 @@ var CYCLES={
         if (wakeLockSentinel === sentinel) { wakeLockSentinel = null; renderWakeToggle(); }
       });
       renderWakeToggle();
-    }).catch(function(){
+    }).catch(function(err){
       // e.g. battery saver mode, or the request was denied for some other reason - fall back
       // to showing it off rather than leaving the toggle stuck looking "on" with no real lock.
+      logCaught("Wake lock request failed:", err);
       wakeRequestPending = false;
       wakeWanted = false;
-      try { localStorage.setItem(WAKE_KEY, "off"); } catch (e) { /* ignore */ }
+      try { localStorage.setItem(WAKE_KEY, "off"); } catch (e) { logCaught("Couldn't save the keep-awake preference:", e); }
       renderWakeToggle();
     });
   }
@@ -2347,13 +2352,13 @@ var CYCLES={
 
   wakeToggle.addEventListener("click", function(){
     wakeWanted = !wakeWanted;
-    try { localStorage.setItem(WAKE_KEY, wakeWanted ? "on" : "off"); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(WAKE_KEY, wakeWanted ? "on" : "off"); } catch (e) { logCaught("Couldn't save the keep-awake preference:", e); }
     if (wakeWanted) {
       requestWakeLock();
     } else if (wakeLockSentinel) {
       var sentinel = wakeLockSentinel;
       wakeLockSentinel = null;
-      sentinel.release().catch(function(){});
+      sentinel.release().catch(function(e){ logCaught("Releasing the wake lock failed:", e); });
       renderWakeToggle();
     }
     // if a request is still in flight when wakeWanted flips to false, requestWakeLock's own
@@ -2464,6 +2469,7 @@ var CYCLES={
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(function(){
       window.Cloud.saveUserDoc(cloudUser.uid, state).catch(function(err){
+        logCaught("Cloud save failed:", err);
         setStatus("acctSyncStatus", "Couldn't sync: " + err.message, "err");
       });
     }, CLOUD_SAVE_DEBOUNCE_MS);
@@ -2522,13 +2528,14 @@ var CYCLES={
         render();
         setStatus("acctSyncStatus", "Synced.", "ok");
       } catch (err) {
+        logCaught("Applying cloud progress failed:", err);
         setStatus("acctSyncStatus", "Cloud progress looked invalid, kept this device's copy.", "err");
       } finally {
         applyingRemoteState = false;
       }
     } else if (!seededCloudDoc) {
       seededCloudDoc = true;
-      window.Cloud.saveUserDoc(cloudUser.uid, state).catch(function(){});
+      window.Cloud.saveUserDoc(cloudUser.uid, state).catch(function(e){ logCaught("Seeding the cloud doc failed:", e); });
     }
   });
 
@@ -2536,6 +2543,7 @@ var CYCLES={
     if (!window.Cloud) return;
     setStatus("acctSyncStatus", "Opening sign-in…", "");
     window.Cloud.signIn().catch(function(err){
+      logCaught("Sign-in failed:", err);
       setStatus("acctSyncStatus", "Sign-in failed: " + err.message, "err");
     });
   });
@@ -2551,7 +2559,7 @@ var CYCLES={
   document.getElementById("admValidate").addEventListener("click", function(){
     var parsed;
     try { parsed = JSON.parse(document.getElementById("admData").value); }
-    catch (e) { setStatus("admStatus", "Not valid JSON: " + e.message, "err"); return; }
+    catch (e) { logCaught("Admin data validate: invalid JSON:", e); setStatus("admStatus", "Not valid JSON: " + e.message, "err"); return; }
     var v = validateGameData(parsed);
     setStatus("admStatus", v.ok ? "Looks good." : "Problems found: " + v.errors.join("; "), v.ok ? "ok" : "err");
   });
@@ -2559,7 +2567,7 @@ var CYCLES={
     if (!window.Cloud || !cloudUser) return;
     var parsed;
     try { parsed = JSON.parse(document.getElementById("admData").value); }
-    catch (e) { setStatus("admStatus", "Not valid JSON: " + e.message, "err"); return; }
+    catch (e) { logCaught("Admin data publish: invalid JSON:", e); setStatus("admStatus", "Not valid JSON: " + e.message, "err"); return; }
     var v = validateGameData(parsed);
     if (!v.ok) { setStatus("admStatus", "Fix these first: " + v.errors.join("; "), "err"); return; }
     setStatus("admStatus", "Publishing…", "");
@@ -2567,6 +2575,7 @@ var CYCLES={
       applyGameData(parsed); // instant local feedback; the live snapshot confirms it moments later
       setStatus("admStatus", "Published — live on every device now.", "ok");
     }).catch(function(err){
+      logCaught("Publishing game data failed:", err);
       setStatus("admStatus", "Publish failed: " + err.message, "err");
     });
   });
