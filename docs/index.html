@@ -1174,10 +1174,9 @@ var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic","Stellar"],rows:
 ["Mythic",4000,8000,14000,30000,60000,90000],
 ]};
 // Droid Fusions: combine 3 droids (each already own-able from the normal chart) into 1 new
-// droid. `ing` rarity classes are the fusion chart's own colour-coded legend, which is
-// specific to what a fusion needs and sometimes differs from a droid's class elsewhere in the
-// app (e.g. ARG/R9/BDX EXPLORER/2BB are colour-coded COMMON here) - kept separate from
-// RARITY_CLASSES/DROID_RARITY on purpose rather than overriding those. `stats` is
+// droid. `ing` rarity classes match each droid's class in RARITY_CLASSES/DROID_RARITY (the
+// fusion chart's own colour-coded legend disagreed on a few - ARG/R9/BDX EXPLORER/2BB - so
+// those are corrected here to match the app's existing classification). `stats` is
 // [income/sec, value] per rarity rung, exactly as tabulated in the source stat sheet; several
 // fusion results share an identical row there, so those stat blocks are reused below.
 (function(){
@@ -1196,12 +1195,12 @@ var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic","Stellar"],rows:
   var MYTHIC_STATS_B = {BASE:[8000,252000000],GOLD:[16000,1010000000],DIAMOND:[32000,2020000000],RAINBOW:[64000,6050000000],BESKAR:[128000,201600000000],GALACTIC:[352000,1180000000000],STELLAR:[1000000,7060000000000]};
 
   window.FUSIONS = [
-    mkF("WHL-EX", "RARE", "WORKER", [["MOUSE","COMMON"],["MOUSE","COMMON"],["ARG","COMMON"]], RARE_STATS),
-    mkF("BTL-R", "RARE", "BATTLE", [["B1 BATTLE","COMMON"],["R9","COMMON"],["BDX EXPLORER","COMMON"]], RARE_STATS),
-    mkF("ZRO-TEC", "RARE", "ASTROMECH", [["ID10","COMMON"],["ID10","COMMON"],["2BB","COMMON"]], RARE_STATS),
+    mkF("WHL-EX", "RARE", "WORKER", [["MOUSE","COMMON"],["MOUSE","COMMON"],["ARG","RARE"]], RARE_STATS),
+    mkF("BTL-R", "RARE", "BATTLE", [["B1 BATTLE","COMMON"],["R9","RARE"],["BDX EXPLORER","RARE"]], RARE_STATS),
+    mkF("ZRO-TEC", "RARE", "ASTROMECH", [["ID10","COMMON"],["ID10","COMMON"],["2BB","RARE"]], RARE_STATS),
 
     mkF("N-UL", "EPIC", "WORKER", [["B1 HEAVY","RARE"],["BB","RARE"],["GUNRUNNER","RARE"]], EPIC_STATS),
-    mkF("ARM-CORE", "EPIC", "BATTLE", [["ARG","COMMON"],["ARG","COMMON"],["B2 HEAVY","RARE"]], EPIC_STATS_ARMCORE),
+    mkF("ARM-CORE", "EPIC", "BATTLE", [["ARG","RARE"],["ARG","RARE"],["B2 HEAVY","RARE"]], EPIC_STATS_ARMCORE),
     mkF("OPT-AR", "EPIC", "BATTLE", [["B2 SUPER","RARE"],["R2","RARE"],["R2","RARE"]], EPIC_STATS),
     mkF("SCRP-R", "EPIC", "ASTROMECH", [["GONK","COMMON"],["GROUNDMECH","RARE"],["R6","RARE"]], EPIC_STATS),
 
@@ -1215,7 +1214,7 @@ var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic","Stellar"],rows:
     mkF("RIV-3T", "MYTHIC", "WORKER", [["KX","MYTHIC"],["IG","MYTHIC"],["RIC","MYTHIC"]], MYTHIC_STATS_RIV3T),
     mkF("X-ONK", "MYTHIC", "BATTLE", [["GONK","COMMON"],["KX","MYTHIC"],["KX","MYTHIC"]], MYTHIC_STATS_B),
     mkF("SRV-0", "MYTHIC", "BATTLE", [["B1 HEAVY","RARE"],["B1 HEAVY","RARE"],["RIC-1200","MYTHIC"]], MYTHIC_STATS_A),
-    mkF("AXI-POD", "MYTHIC", "ASTROMECH", [["BDX EXPLORER","COMMON"],["R7","LEGENDARY"],["RIC","MYTHIC"]], MYTHIC_STATS_B)
+    mkF("AXI-POD", "MYTHIC", "ASTROMECH", [["BDX EXPLORER","RARE"],["R7","LEGENDARY"],["RIC","MYTHIC"]], MYTHIC_STATS_B)
   ];
 })();
 var CYCLES={
