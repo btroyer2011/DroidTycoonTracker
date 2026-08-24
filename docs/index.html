@@ -323,6 +323,40 @@ header .lede{
 }
 .rpNone[aria-pressed="true"]{border-color:var(--sell);color:var(--sell)}
 
+/* ---- droid fusions (combine 3 droids into 1 new one) ---- */
+.fusionSelect{
+  width:100%;appearance:none;cursor:pointer;background:var(--panel2);color:var(--ink);
+  border:2px solid var(--line);border-radius:11px;padding:11px 12px;font:700 13px/1.2 inherit;
+  margin-bottom:12px;
+}
+.fusionRecipe{
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;
+  background:var(--panel2);border:2px solid var(--line);border-radius:13px;padding:14px 10px;
+}
+.fusionIng{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:76px}
+.fusionIng .fiName{font-size:11px;font-weight:800;letter-spacing:.02em;text-align:center;word-break:break-word}
+.fusionIng .fiCls{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.fusionOp{font-size:15px;font-weight:800;color:var(--dim);flex:none}
+.fusionResult{
+  appearance:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:88px;background:var(--panel);border:2px solid var(--line);border-radius:11px;
+  padding:9px 10px;color:inherit;font:inherit;
+}
+.fusionResult:active{background:#20202e}
+.fusionResult .frName{font-size:12px;font-weight:800;letter-spacing:.02em;text-align:center;word-break:break-word}
+.fusionResult .frType{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.fusionResult .frTap{font-size:8px;color:var(--dim);letter-spacing:.05em;text-transform:uppercase;margin-top:1px}
+/* result-type colours, matching the source chart's WORKER/BATTLE/ASTROMECH coding */
+.ft-WORKER{color:var(--green)}
+.ft-BATTLE{color:var(--red)}
+.ft-ASTROMECH{color:#b28cff}
+
+.fsTable{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}
+.fsTable th,.fsTable td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--line)}
+.fsTable th:first-child,.fsTable td:first-child{text-align:left}
+.fsTable th{color:var(--dim);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:800}
+.fsTable td:first-child{font-weight:800}
+
 /* ---- section headings ---- */
 h2{
   margin:0 0 8px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
@@ -665,6 +699,16 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     </div>
   </details>
 
+  <details id="fusionbox">
+    <summary>Droid Fusions &mdash; combine 3 droids into 1</summary>
+    <div class="inner">
+      <p class="key">Fuse three droids together to create a new droid. Pick a recipe, then tap
+        the result to see its income and value at every rarity.</p>
+      <select id="fusionSelect" class="fusionSelect" aria-label="Choose a fusion recipe"></select>
+      <div id="fusionRecipe" class="fusionRecipe"></div>
+    </div>
+  </details>
+
   <details id="backupbox">
     <summary>Backup &amp; restore</summary>
     <div class="inner">
@@ -829,6 +873,19 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
     <div class="rpGrid" id="rpGrid"></div>
     <button class="rpNone" id="rpNone">I don't own this yet</button>
     <button class="pkCancel" id="rpCancel">Close</button>
+  </div>
+</div>
+
+<div class="modal" id="fusionStats" hidden>
+  <div class="sheet rpSheet" role="dialog" aria-modal="true" aria-labelledby="fsTitle">
+    <div class="rpHead">
+      <div>
+        <h3 id="fsTitle">Droid</h3>
+        <p class="rpSub" id="fsSub"></p>
+      </div>
+    </div>
+    <table class="fsTable" id="fsTable"></table>
+    <button class="pkCancel" id="fsCancel">Close</button>
   </div>
 </div>
 
@@ -1116,6 +1173,51 @@ var CHIPS={cols:["Gold","Diamond","Rainbow","Beskar","Galactic","Stellar"],rows:
 ["Legend",400,1200,2500,6000,16000,24000],
 ["Mythic",4000,8000,14000,30000,60000,90000],
 ]};
+// Droid Fusions: combine 3 droids (each already own-able from the normal chart) into 1 new
+// droid. `ing` rarity classes are the fusion chart's own colour-coded legend, which is
+// specific to what a fusion needs and sometimes differs from a droid's class elsewhere in the
+// app (e.g. ARG/R9/BDX EXPLORER/2BB are colour-coded COMMON here) - kept separate from
+// RARITY_CLASSES/DROID_RARITY on purpose rather than overriding those. `stats` is
+// [income/sec, value] per rarity rung, exactly as tabulated in the source stat sheet; several
+// fusion results share an identical row there, so those stat blocks are reused below.
+(function(){
+  function mkF(result, tier, type, ing, stats){
+    return { result: result, tier: tier, type: type,
+      ing: ing.map(function(i){ return { n: i[0], c: i[1] }; }), stats: stats };
+  }
+  var RARE_STATS = {BASE:[72,227500],GOLD:[144,910000],DIAMOND:[288,1820000],RAINBOW:[576,3640000],BESKAR:[864,14560000],GALACTIC:[1730,4550000],STELLAR:[2300,5460000]};
+  var EPIC_STATS = {BASE:[720,9520000],GOLD:[1440,38080000],DIAMOND:[2880,76160000],RAINBOW:[5760,152320000],BESKAR:[24480,1190000000],GALACTIC:[37440,2860000000],STELLAR:[57600,7140000000]};
+  var EPIC_STATS_ARMCORE = {BASE:[690,9200000],GOLD:[1380,36800000],DIAMOND:[2760,73600000],RAINBOW:[5520,147200000],BESKAR:[23460,1150000000],GALACTIC:[35880,2760000000],STELLAR:[55200,6900000000]};
+  var LEGENDARY_STATS_ROTOR = {BASE:[1500,50400000],GOLD:[3000,201600000],DIAMOND:[6000,403200000],RAINBOW:[12000,806400000],BESKAR:[36000,20160000000],GALACTIC:[90000,120960000000],STELLAR:[225000,730800000000]};
+  var LEGENDARY_STATS = {BASE:[1600,56000000],GOLD:[3200,224000000],DIAMOND:[6400,448000000],RAINBOW:[12800,896000000],BESKAR:[38400,22400000000],GALACTIC:[96000,134400000000],STELLAR:[240000,812000000000]};
+  var MYTHIC_STATS_A = {BASE:[7600,224000000],GOLD:[15200,896000000],DIAMOND:[30400,1790000000],RAINBOW:[60800,5380000000],BESKAR:[121600,179200000000],GALACTIC:[334400,1050000000000],STELLAR:[950000,6270000000000]};
+  var MYTHIC_STATS_LOWMO = {BASE:[7800,238000000],GOLD:[15600,952000000],DIAMOND:[31200,1900000000],RAINBOW:[62400,5710000000],BESKAR:[124800,190400000000],GALACTIC:[343200,1120000000000],STELLAR:[975000,6660000000000]};
+  var MYTHIC_STATS_RIV3T = {BASE:[8400,252000000],GOLD:[16800,1010000000],DIAMOND:[33600,2020000000],RAINBOW:[67200,6050000000],BESKAR:[134400,201600000000],GALACTIC:[369600,1180000000000],STELLAR:[1050000,7060000000000]};
+  var MYTHIC_STATS_B = {BASE:[8000,252000000],GOLD:[16000,1010000000],DIAMOND:[32000,2020000000],RAINBOW:[64000,6050000000],BESKAR:[128000,201600000000],GALACTIC:[352000,1180000000000],STELLAR:[1000000,7060000000000]};
+
+  window.FUSIONS = [
+    mkF("WHL-EX", "RARE", "WORKER", [["MOUSE","COMMON"],["MOUSE","COMMON"],["ARG","COMMON"]], RARE_STATS),
+    mkF("BTL-R", "RARE", "BATTLE", [["B1 BATTLE","COMMON"],["R9","COMMON"],["BDX EXPLORER","COMMON"]], RARE_STATS),
+    mkF("ZRO-TEC", "RARE", "ASTROMECH", [["ID10","COMMON"],["ID10","COMMON"],["2BB","COMMON"]], RARE_STATS),
+
+    mkF("N-UL", "EPIC", "WORKER", [["B1 HEAVY","RARE"],["BB","RARE"],["GUNRUNNER","RARE"]], EPIC_STATS),
+    mkF("ARM-CORE", "EPIC", "BATTLE", [["ARG","COMMON"],["ARG","COMMON"],["B2 HEAVY","RARE"]], EPIC_STATS_ARMCORE),
+    mkF("OPT-AR", "EPIC", "BATTLE", [["B2 SUPER","RARE"],["R2","RARE"],["R2","RARE"]], EPIC_STATS),
+    mkF("SCRP-R", "EPIC", "ASTROMECH", [["GONK","COMMON"],["GROUNDMECH","RARE"],["R6","RARE"]], EPIC_STATS),
+
+    mkF("RO-TOR", "LEGENDARY", "WORKER", [["PIT","COMMON"],["B1 BATTLE","COMMON"],["BB9","LEGENDARY"]], LEGENDARY_STATS_ROTOR),
+    mkF("FUS-3", "LEGENDARY", "WORKER", [["B-U4D","RARE"],["B-U4D","RARE"],["R7","LEGENDARY"]], LEGENDARY_STATS),
+    mkF("QIK-BIT", "LEGENDARY", "WORKER", [["GROUNDMECH","RARE"],["GROUNDMECH","RARE"],["BB9","LEGENDARY"]], LEGENDARY_STATS),
+    mkF("ORB-XL", "LEGENDARY", "BATTLE", [["CB","COMMON"],["GUNRUNNER","RARE"],["B2-RP","LEGENDARY"]], LEGENDARY_STATS),
+
+    mkF("LUG-G", "MYTHIC", "WORKER", [["ID10","COMMON"],["R5","COMMON"],["LOADLIFTER","MYTHIC"]], MYTHIC_STATS_A),
+    mkF("LOW-MO", "MYTHIC", "WORKER", [["A-LT","RARE"],["A-LT","RARE"],["LOADLIFTER","MYTHIC"]], MYTHIC_STATS_LOWMO),
+    mkF("RIV-3T", "MYTHIC", "WORKER", [["KX","MYTHIC"],["IG","MYTHIC"],["RIC","MYTHIC"]], MYTHIC_STATS_RIV3T),
+    mkF("X-ONK", "MYTHIC", "BATTLE", [["GONK","COMMON"],["KX","MYTHIC"],["KX","MYTHIC"]], MYTHIC_STATS_B),
+    mkF("SRV-0", "MYTHIC", "BATTLE", [["B1 HEAVY","RARE"],["B1 HEAVY","RARE"],["RIC-1200","MYTHIC"]], MYTHIC_STATS_A),
+    mkF("AXI-POD", "MYTHIC", "ASTROMECH", [["BDX EXPLORER","COMMON"],["R7","LEGENDARY"],["RIC","MYTHIC"]], MYTHIC_STATS_B)
+  ];
+})();
 var CYCLES={
 1:[
 [{n:"PIT",r:"BASE",b:"Y"},{n:"DRK-I PROBE",r:"BASE",b:"Y"},{n:"CB",r:"BASE",b:"Y"}],
@@ -2142,6 +2244,89 @@ var CYCLES={
       "Chart data: Droid Tycoon " + esc(META.version) + "<br>Money costs are identical in every cycle.";
   }
   renderChipsTable();
+
+  // ---- droid fusions (combine 3 droids into 1 new droid) --------------------------------
+  // Numbers here are per-rarity-rung income/value for the FUSION RESULT droid, abbreviated
+  // the same way the source chart does (k/m/b/t) for readability at this scale.
+  function fmtAbbr(n){
+    var abs = Math.abs(n), suf = "", div = 1;
+    if (abs >= 1e12) { suf = "t"; div = 1e12; }
+    else if (abs >= 1e9) { suf = "b"; div = 1e9; }
+    else if (abs >= 1e6) { suf = "m"; div = 1e6; }
+    else if (abs >= 1e3) { suf = "k"; div = 1e3; }
+    return (Math.round((n / div) * 100) / 100) + suf;
+  }
+  function titleCase(s){ return s.charAt(0) + s.slice(1).toLowerCase(); }
+
+  var fusionSelect = document.getElementById("fusionSelect");
+  var fusionRecipe = document.getElementById("fusionRecipe");
+  (function buildFusionSelect(){
+    var h = "", curTier = null;
+    window.FUSIONS.forEach(function(f, i){
+      if (f.tier !== curTier) {
+        if (curTier !== null) h += "</optgroup>";
+        h += '<optgroup label="' + esc(titleCase(f.tier)) + '">';
+        curTier = f.tier;
+      }
+      h += '<option value="' + i + '">' +
+           esc(f.ing.map(function(g){ return g.n; }).join(" + ")) + " = " + esc(f.result) +
+           "</option>";
+    });
+    h += "</optgroup>";
+    fusionSelect.innerHTML = h;
+  })();
+
+  function renderFusionRecipe(){
+    var f = window.FUSIONS[fusionSelect.value];
+    if (!f) { fusionRecipe.innerHTML = ""; return; }
+    var h = "";
+    f.ing.forEach(function(g, i){
+      if (i > 0) h += '<span class="fusionOp">+</span>';
+      h += '<div class="fusionIng"><div class="fiName rc-' + g.c + '">' + esc(g.n) + '</div>' +
+           '<div class="fiCls rc-' + g.c + '">' + esc(g.c) + '</div></div>';
+    });
+    h += '<span class="fusionOp">=</span>' +
+         '<button type="button" class="fusionResult" data-fi="' + fusionSelect.value +
+         '" aria-haspopup="dialog">' +
+         '<div class="frName rc-' + f.tier + '">' + esc(f.result) + '</div>' +
+         '<div class="frType ft-' + f.type + '">' + esc(f.type) + '</div>' +
+         '<div class="frTap">Tap for stats</div></button>';
+    fusionRecipe.innerHTML = h;
+  }
+  fusionSelect.addEventListener("change", renderFusionRecipe);
+  renderFusionRecipe();
+
+  var fusionStats = document.getElementById("fusionStats");
+  function openFusionStats(idx){
+    var f = window.FUSIONS[idx];
+    if (!f) return;
+    var fsTitle = document.getElementById("fsTitle");
+    fsTitle.textContent = f.result;
+    fsTitle.className = "rc-" + f.tier;
+    document.getElementById("fsSub").innerHTML =
+      esc(titleCase(f.tier)) + " &middot; <span class=\"ft-" + f.type + "\">" + esc(f.type) +
+      "</span> &middot; fused from " + esc(f.ing.map(function(g){ return g.n; }).join(" + "));
+    var h = "<tr><th>Rarity</th><th>Income/s</th><th>Value</th></tr>";
+    RARITY_ORDER.forEach(function(r){
+      var s = f.stats[r];
+      if (!s) return;
+      h += "<tr><td>" + esc(r) + "</td><td>" + fmtAbbr(s[0]) + "/s</td><td>" + fmtAbbr(s[1]) + "</td></tr>";
+    });
+    document.getElementById("fsTable").innerHTML = h;
+    fusionStats.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeFusionStats(){
+    fusionStats.hidden = true;
+    document.body.style.overflow = "";
+  }
+  fusionRecipe.addEventListener("click", function(e){
+    var btn = e.target.closest(".fusionResult");
+    if (btn) openFusionStats(btn.dataset.fi);
+  });
+  fusionStats.addEventListener("click", function(e){
+    if (e.target.closest("#fsCancel") || e.target === fusionStats) closeFusionStats();
+  });
 
   // ---- sticky stack offsets --------------------------------------------------------------
   // The moved-banner (Artifact build only), the blueprint timer bar, and the reset bar all
