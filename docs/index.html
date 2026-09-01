@@ -399,6 +399,18 @@ details[open] summary::after{transform:rotate(180deg)}
 .inner>section:last-child{margin-bottom:0}
 
 /* ---- full chart ---- */
+/* segmented control that switches the chart between the by-rebirth and unique-droids views */
+.chartViewToggle{
+  display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:10px;
+  background:var(--panel2);border:2px solid var(--line);border-radius:11px;padding:3px;
+}
+.cvBtn{
+  appearance:none;cursor:pointer;background:transparent;color:var(--dim);
+  border:0;border-radius:8px;padding:9px 6px;font:800 12px/1 inherit;letter-spacing:.03em;
+}
+.cvBtn[aria-pressed="true"]{background:var(--panel);color:var(--green);box-shadow:0 0 0 1px var(--green) inset}
+/* unique-droids view: a flat grid of tiles (no per-rebirth level column) */
+.uniqueGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
 .chart{display:flex;flex-direction:column;gap:4px}
 .row{
   display:grid;grid-template-columns:52px 1fr 1fr 1fr;gap:4px;align-items:stretch;
@@ -695,6 +707,10 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <details id="chartbox" open>
     <summary>Full chart &mdash; all 35 rebirths</summary>
     <div class="inner">
+      <div class="chartViewToggle" role="group" aria-label="Chart view">
+        <button class="cvBtn" id="cvByRebirth" aria-pressed="true">By rebirth</button>
+        <button class="cvBtn" id="cvUnique" aria-pressed="false">Unique droids</button>
+      </div>
       <div class="chart" id="chart"></div>
     </div>
   </details>
@@ -1666,19 +1682,19 @@ var CYCLES={
     if (r <= cur) { if (r - 1 < 0) delete s[name]; else s[name] = r - 1; }
     else s[name] = r;
     save();
-    renderChart(); renderSearch();
+    renderChartView(); renderSearch();
   }
   // Set directly from the press-and-hold rarity picker, rather than inferring it from which
   // tile was tapped - lets you jump straight to a rarity that isn't on screen.
   function setOwnedRarity(name, rarity){
     ownedSet()[name] = rarityRank(rarity);
     save();
-    renderChart(); renderSearch();
+    renderChartView(); renderSearch();
   }
   function clearOwned(name){
     delete ownedSet()[name];
     save();
-    renderChart(); renderSearch();
+    renderChartView(); renderSearch();
   }
   function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
@@ -1787,6 +1803,83 @@ var CYCLES={
     document.getElementById("chart").innerHTML = h;
   }
 
+  // ---- chart view toggle: by-rebirth (the chart above) vs. unique-droids -----------------
+  // A lightweight per-device view preference (not part of saved progress/backup), persisted the
+  // same way as the alerts/keep-awake toggles.
+  var CHARTVIEW_KEY = "droidtycoon.chartView.v1";
+  var chartView = "chart";
+  try { if (localStorage.getItem(CHARTVIEW_KEY) === "unique") chartView = "unique"; }
+  catch (e) { logCaught("Couldn't read the saved chart-view preference:", e); }
+  var cvByRebirth = document.getElementById("cvByRebirth");
+  var cvUnique = document.getElementById("cvUnique");
+
+  // The "unique droids" view: one tile per droid, at the highest rarity it's needed at within the
+  // current sell-early threshold. Only appearances at rebirths <= threshold count (an appearance
+  // exactly at the threshold counts; anything beyond it is ignored, and a droid needed only beyond
+  // it drops out entirely). Tiles are plain .cell elements with data-nm/data-r, so the chart's
+  // existing tap-to-own, press-and-hold and right-click handlers (all delegated on #chart and
+  // keyed off .cell[data-nm]) work here unchanged.
+  function renderUniqueChart(){
+    var r = rows(), T = state.threshold, byName = {}, order = [];
+    for (var i = 0; i < MAXLVL && i < T; i++) {   // i < T  =>  level (i+1) <= T
+      for (var j = 0; j < 3; j++) {
+        var d = r[i][j];
+        if (d.u) continue;                        // skip not-yet-documented cells
+        var e = byName[d.n];
+        if (!e) { e = byName[d.n] = { n: d.n, top: -1, topR: null, first: i + 1, apps: [] }; order.push(e); }
+        e.apps.push({ level: i + 1, rarity: d.r });
+        if (rarityRank(d.r) > e.top) { e.top = rarityRank(d.r); e.topR = d.r; }
+      }
+    }
+    // sort by when you first need the droid (earliest rebirth), tie-broken by name
+    order.sort(function(a, b){ return a.first - b.first || (a.n < b.n ? -1 : a.n > b.n ? 1 : 0); });
+
+    if (!order.length) {
+      document.getElementById("chart").innerHTML =
+        '<p class="searchHint">No droids are needed at or before Rebirth ' + T +
+        ' in Cycle ' + state.cycle + '. Raise the &ldquo;sell early&rdquo; rebirth in Settings to see more.</p>';
+      return;
+    }
+    var h = '<div class="uniqueGrid">';
+    order.forEach(function(e){
+      var badges = '<div class="cfut"><i class="cfMark">↻</i>' +
+        e.apps.map(function(a){
+          return '<b class="cfx r-' + a.rarity + '" title="Rebirth ' + a.level + ' · ' +
+                 a.rarity + '">' + a.level + '</b>';
+        }).join("") + '</div>';
+      var own = isOwned(e.n, e.topR);
+      h += '<div class="cell' + (own ? ' owned' : '') + '" data-nm="' + esc(e.n) +
+           '" data-r="' + e.topR + '" title="' + (own ?
+             'Owned at ' + e.topR + ' - tap to give up this rarity and above' :
+             'Tap: you own ' + e.n + ' at ' + e.topR + ' (and below)') + '">' +
+           '<div class="cthumb">' + art({ n: e.n, r: e.topR }, "") + badges +
+             (own ? '<span class="cown">✓</span>' : "") +
+           '</div>' +
+           '<div class="cm"><div class="cr r-' + e.topR + '">' + e.topR + '</div>' +
+           '<div class="cn rc-' + rarityClass(e.n) + '">' + esc(e.n) + '</div></div></div>';
+    });
+    h += '</div>';
+    document.getElementById("chart").innerHTML = h;
+  }
+
+  // Render whichever chart view is active, and keep the toggle's pressed state in sync.
+  function renderChartView(){
+    cvByRebirth.setAttribute("aria-pressed", String(chartView === "chart"));
+    cvUnique.setAttribute("aria-pressed", String(chartView === "unique"));
+    if (chartView === "unique") renderUniqueChart();
+    else renderChart();
+  }
+
+  function setChartView(view){
+    if (view === chartView) return;
+    chartView = view;
+    try { localStorage.setItem(CHARTVIEW_KEY, view); }
+    catch (e) { logCaught("Couldn't save the chart-view preference:", e); }
+    renderChartView();
+  }
+  cvByRebirth.addEventListener("click", function(){ setChartView("chart"); });
+  cvUnique.addEventListener("click", function(){ setChartView("unique"); });
+
   var searchInput = document.getElementById("search");
 
   function renderSearch(){
@@ -1888,7 +1981,7 @@ var CYCLES={
     document.getElementById("thDown").disabled = T <= 1;
     document.getElementById("thUp").disabled = T >= MAXLVL;
 
-    renderChart();
+    renderChartView();
     renderSearch();
     save();
   }
