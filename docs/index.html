@@ -411,6 +411,21 @@ details[open] summary::after{transform:rotate(180deg)}
 .cvBtn[aria-pressed="true"]{background:var(--panel);color:var(--green);box-shadow:0 0 0 1px var(--green) inset}
 /* unique-droids view: a flat grid of tiles (no per-rebirth level column) */
 .uniqueGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+/* current-progress ring: shown when you own SOME rarity of a droid but below the highest one this
+   view lists for it. Coloured by the owned rarity (--uOwnColor), rainbow gets its gradient. The
+   mask trick paints only a 2px rounded ring so the tile's corners stay round (a border-image
+   gradient would square them); pointer-events:none keeps taps working. */
+.cell.uHas::after{
+  content:"";position:absolute;inset:0;border-radius:7px;padding:2px;
+  background:var(--uOwnColor);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;z-index:3;
+}
+.uOwn-BASE{--uOwnColor:var(--r-BASE)} .uOwn-GOLD{--uOwnColor:var(--r-GOLD)}
+.uOwn-DIAMOND{--uOwnColor:var(--r-DIAMOND)} .uOwn-BESKAR{--uOwnColor:var(--r-BESKAR)}
+.uOwn-GALACTIC{--uOwnColor:var(--r-GALACTIC)} .uOwn-STELLAR{--uOwnColor:var(--r-STELLAR)}
+.uOwn-RAINBOW{--uOwnColor:linear-gradient(90deg,#ff4d4d,#ffc233,#3dff9a,#45d7ff,#c46bff)}
 .chart{display:flex;flex-direction:column;gap:4px}
 .row{
   display:grid;grid-template-columns:52px 1fr 1fr 1fr;gap:4px;align-items:stretch;
@@ -1847,13 +1862,21 @@ var CYCLES={
           return '<b class="cfx r-' + a.rarity + '" title="Rebirth ' + a.level + ' · ' +
                  a.rarity + '">' + a.level + '</b>';
         }).join("") + '</div>';
-      var own = isOwned(e.n, e.topR);
-      h += '<div class="cell' + (own ? ' owned' : '') + '" data-nm="' + esc(e.n) +
-           '" data-r="' + e.topR + '" title="' + (own ?
-             'Owned at ' + e.topR + ' - tap to give up this rarity and above' :
-             'Tap: you own ' + e.n + ' at ' + e.topR + ' (and below)') + '">' +
+      // Three ownership states: none (neutral), partial (own a lower rarity than the highest
+      // needed - show a rarity-coloured ring, tile stays bright), or full (own the highest needed -
+      // dim + green check, same as the by-rebirth chart). `full` is exactly isOwned(e.n, e.topR).
+      var ownRank = ownedTop(e.n);
+      var full = ownRank >= e.top;
+      var partial = ownRank >= 0 && ownRank < e.top;
+      var ownR = ownRank >= 0 ? RARITY_ORDER[ownRank] : null;
+      var cls = "cell" + (full ? " owned" : "") + (partial ? " uHas uOwn-" + ownR : "");
+      var title = full ? ('Owned at ' + e.topR + ' - tap to give up this rarity and above')
+        : partial ? ('Own ' + ownR + ' · need ' + e.topR + ' - tap to mark a higher rarity')
+        : ('Tap: you own ' + e.n + ' at ' + e.topR + ' (and below)');
+      h += '<div class="' + cls + '" data-nm="' + esc(e.n) +
+           '" data-r="' + e.topR + '" title="' + title + '">' +
            '<div class="cthumb">' + art({ n: e.n, r: e.topR }, "") + badges +
-             (own ? '<span class="cown">✓</span>' : "") +
+             (full ? '<span class="cown">✓</span>' : "") +
            '</div>' +
            '<div class="cm"><div class="cr r-' + e.topR + '">' + e.topR + '</div>' +
            '<div class="cn rc-' + rarityClass(e.n) + '">' + esc(e.n) + '</div></div></div>';
