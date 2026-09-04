@@ -299,6 +299,10 @@ header .lede{
 }
 .stBtn:active{background:var(--panel2)}
 .stBtn:disabled{opacity:.4;cursor:default}
+/* the timer/alert/keep-awake pills, relocated from the timer bar into Settings, stacked full-width */
+.stToggles{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.stToggles .alertToggle{width:100%;justify-content:flex-start}
+.alertToggle:disabled{opacity:.45;cursor:default}
 
 /* ---- rarity picker (press-and-hold, or right-click, a chart tile) ---- */
 .rpSheet{max-width:380px}
@@ -399,9 +403,16 @@ details[open] summary::after{transform:rotate(180deg)}
 .inner>section:last-child{margin-bottom:0}
 
 /* ---- full chart ---- */
-/* segmented control that switches the chart between the by-rebirth and unique-droids views */
+/* segmented control that switches the chart between the by-rebirth and unique-droids views.
+   Wrapped in a sticky band so it stays pinned at the top of the chart while scrolling; the band
+   is panel-coloured (it sits inside the chart's <details> panel) so tiles scrolling under it are
+   covered. top is set at runtime by syncStickyOffsets() to sit just below the pinned stack. */
+.chartViewBar{
+  position:sticky;top:0;z-index:19;
+  background:var(--panel);padding-bottom:8px;margin-bottom:8px;box-shadow:0 10px 12px -10px #000;
+}
 .chartViewToggle{
-  display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:10px;
+  display:grid;grid-template-columns:1fr 1fr;gap:4px;
   background:var(--panel2);border:2px solid var(--line);border-radius:11px;padding:3px;
 }
 .cvBtn{
@@ -629,17 +640,6 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <div class="timerBar" id="timerBar">
     <div class="timerBarTop">
       <span class="timerBarLabel">Sandcrawler Blueprint Countdowns</span>
-      <div class="timerBarToggles">
-        <!-- Hidden until the Wake Lock API is detected; unsupported browsers never see it. -->
-        <button class="alertToggle" id="wakeToggle" aria-pressed="false" hidden>
-          <span class="alertDot" aria-hidden="true"></span>
-          <span id="wakeToggleLabel">Keep Screen Awake: Off</span>
-        </button>
-        <button class="alertToggle" id="alertToggle" aria-pressed="true">
-          <span class="alertDot" aria-hidden="true"></span>
-          <span id="alertToggleLabel">Sandcrawler Alerts: On</span>
-        </button>
-      </div>
     </div>
     <div class="timerRow">
       <div class="timerPill stellar" id="timerPill-stellar">
@@ -722,9 +722,11 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
   <details id="chartbox" open>
     <summary>Full chart &mdash; all 35 rebirths</summary>
     <div class="inner">
-      <div class="chartViewToggle" role="group" aria-label="Chart view">
-        <button class="cvBtn" id="cvByRebirth" aria-pressed="true">By rebirth</button>
-        <button class="cvBtn" id="cvUnique" aria-pressed="false">Unique droids</button>
+      <div class="chartViewBar" id="chartViewBar">
+        <div class="chartViewToggle" role="group" aria-label="Chart view">
+          <button class="cvBtn" id="cvByRebirth" aria-pressed="true">By rebirth</button>
+          <button class="cvBtn" id="cvUnique" aria-pressed="false">Unique droids</button>
+        </div>
       </div>
       <div class="chart" id="chart"></div>
     </div>
@@ -808,6 +810,21 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
       and re-pull for the endgame. Needed again before rebirth <b id="thN2">21</b> &rarr; no
       outline, so keep it. In the full chart, rebirth numbers from <b id="thN3">21</b> on are
       shown in red to mark the block.</p>
+    <div class="stToggles">
+      <button class="alertToggle" id="timersToggle" aria-pressed="true">
+        <span class="alertDot" aria-hidden="true"></span>
+        <span id="timersToggleLabel">Blueprint Timers: On</span>
+      </button>
+      <button class="alertToggle" id="alertToggle" aria-pressed="true">
+        <span class="alertDot" aria-hidden="true"></span>
+        <span id="alertToggleLabel">Sandcrawler Alerts: On</span>
+      </button>
+      <!-- Hidden until the Wake Lock API is detected; unsupported browsers never see it. -->
+      <button class="alertToggle" id="wakeToggle" aria-pressed="false" hidden>
+        <span class="alertDot" aria-hidden="true"></span>
+        <span id="wakeToggleLabel">Keep Screen Awake: Off</span>
+      </button>
+    </div>
     <button class="pkCancel" id="stClose">Done</button>
   </div>
 </div>
@@ -1978,11 +1995,13 @@ var CYCLES={
     wrapEl.classList.add("search-open");
     searchToggle.setAttribute("aria-expanded", "true");
     searchInput.focus();
+    syncStickyOffsets(); // the dock now takes up space (mobile) - re-measure the sticky stack
   }
   function collapseSearchIfEmpty(){
     if (!searchInput.value.trim()) {
       wrapEl.classList.remove("search-open");
       searchToggle.setAttribute("aria-expanded", "false");
+      syncStickyOffsets(); // the dock is hidden again on mobile - re-measure
     }
   }
   searchToggle.addEventListener("click", openSearch);
@@ -2459,7 +2478,10 @@ var CYCLES={
     var rH = reset.getBoundingClientRect().height;
     var dock = document.querySelector(".searchDock");
     dock.style.top = (bH + tH + rH) + "px";
-    var dH = dock.getBoundingClientRect().height;
+    var dH = dock.getBoundingClientRect().height;   // 0 on mobile when the dock is collapsed
+    // the chart-view toggle band pins just below the rest of the stack while scrolling the chart
+    var cvBar = document.getElementById("chartViewBar");
+    if (cvBar) cvBar.style.top = (bH + tH + rH + dH) + "px";
     // used by .row's scroll-margin-top, so scrollIntoView clears the whole stack, not just
     // the reset bar - the search dock's own height varies too (hint text vs. results list)
     document.documentElement.style.setProperty("--stackH", (bH + tH + rH + dH + 12) + "px");
@@ -2592,6 +2614,35 @@ var CYCLES={
     if (alertsOn) unlockAudioOnce();
   });
 
+  // ---- show/hide the blueprint timer bar (Settings toggle) --------------------------------
+  // A per-device view preference (not saved progress). When off, the whole timer bar is removed
+  // from the screen and its alerts go silent; alerts are meaningless then, so that toggle is
+  // disabled. The tick loop keeps computing while hidden (pulses are just invisible), so state
+  // stays consistent and turning timers back on is seamless - only audible alerts are suppressed.
+  var TIMERS_KEY = "droidtycoon.showTimers.v1";
+  var timersOn = true;
+  try { if (localStorage.getItem(TIMERS_KEY) === "off") timersOn = false; }
+  catch (e) { logCaught("Couldn't read the saved show-timers preference:", e); }
+  var timerBar = document.getElementById("timerBar");
+  var timersToggle = document.getElementById("timersToggle");
+  var timersToggleLabel = document.getElementById("timersToggleLabel");
+
+  function renderTimersToggle(){
+    timersToggle.setAttribute("aria-pressed", String(timersOn));
+    timersToggleLabel.textContent = "Blueprint Timers: " + (timersOn ? "On" : "Off");
+    timerBar.hidden = !timersOn;
+    alertToggle.disabled = !timersOn;   // no timers on screen => alerts have nothing to fire on
+  }
+  renderTimersToggle();   // applies timerBar.hidden before the sticky stack is measured below
+
+  timersToggle.addEventListener("click", function(){
+    timersOn = !timersOn;
+    try { localStorage.setItem(TIMERS_KEY, timersOn ? "on" : "off"); } catch (e) { logCaught("Couldn't save the show-timers preference:", e); }
+    renderTimersToggle();
+    syncStickyOffsets();                // the bar appearing/disappearing changes the sticky stack
+    if (timersOn) tickBlueprintTimers();  // repopulate the countdowns immediately
+  });
+
   // ---- keep-screen-awake toggle (optional; hidden entirely if the Wake Lock API isn't
   // supported, e.g. older Safari) ----------------------------------------------------------
   var wakeToggle = document.getElementById("wakeToggle");
@@ -2704,12 +2755,12 @@ var CYCLES={
         (prevS[t.id] > 0 && prevS[t.id] <= ALERT_LEAD_SECONDS && s > ALERT_LEAD_SECONDS);
       if (justHitZero) {
         triggerZeroPulse(t.id);
-        if (alertsOn) playAlertBeep(2); // twice, gated by the same alerts toggle as everything else
+        if (alertsOn && timersOn) playAlertBeep(2); // no sound while the timer bar is hidden
       }
 
       if (s > ALERT_LEAD_SECONDS) {
         soundOwed[t.id] = true;
-      } else if (soundOwed[t.id] && alertsOn) {
+      } else if (soundOwed[t.id] && alertsOn && timersOn) {
         soundOwed[t.id] = false;
         playAlertBeep();
       }
