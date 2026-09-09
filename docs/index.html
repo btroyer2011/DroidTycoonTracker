@@ -2801,6 +2801,26 @@ var CYCLES={
   var cloudUser = null, isAdmin = false, cloudSaveTimer = null, seededCloudDoc = false;
   var applyingRemoteState = false; // true only while state is being overwritten FROM the cloud
   var CLOUD_SAVE_DEBOUNCE_MS = 800;
+  // A local edit is written to localStorage instantly but only pushed to the cloud after an
+  // 800ms debounce (and a network round-trip). If the user edits and then reloads before that
+  // flush lands, localStorage is ahead of the cloud doc. This persisted flag records "this
+  // device has an edit the cloud hasn't confirmed yet" so the next page load keeps the local
+  // copy and re-flushes it, instead of the (stale) cloud doc overwriting the just-made change.
+  var CLOUD_PENDING_KEY = "droidtycoon.cloudPending.v1";
+  var localEditSeq = 0; // bumped on every genuine local edit (post sign-in)
+  function markCloudPending(){ try { localStorage.setItem(CLOUD_PENDING_KEY, "1"); } catch (e) { logCaught("Couldn't flag pending cloud sync:", e); } }
+  function clearCloudPending(){ try { localStorage.removeItem(CLOUD_PENDING_KEY); } catch (e) { logCaught("Couldn't clear pending cloud flag:", e); } }
+  function hasCloudPending(){ try { return localStorage.getItem(CLOUD_PENDING_KEY) === "1"; } catch (e) { logCaught("Couldn't read pending cloud flag:", e); return false; } }
+  // Push the current local state to the cloud, clearing the pending flag once it lands - but
+  // only if no newer edit arrived while the write was in flight (that edit re-set the flag and
+  // scheduled its own write, so it must stay pending). Always returns a promise.
+  function writeLocalToCloud(){
+    if (!cloudUser || !window.Cloud) return Promise.resolve();
+    var seqAtWrite = localEditSeq;
+    return window.Cloud.saveUserDoc(cloudUser.uid, state).then(function(){
+      if (localEditSeq === seqAtWrite) clearCloudPending();
+    });
+  }
   var acctSignedOut = document.getElementById("acctSignedOut");
   var acctSignedIn = document.getElementById("acctSignedIn");
   var acctAdmin = document.getElementById("acctAdmin");
@@ -2817,9 +2837,11 @@ var CYCLES={
 
   function scheduleCloudSave(){
     if (!cloudUser || !window.Cloud || applyingRemoteState) return;
+    localEditSeq++;
+    markCloudPending(); // persisted immediately so a reload before the flush keeps this edit
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(function(){
-      window.Cloud.saveUserDoc(cloudUser.uid, state).catch(function(err){
+      writeLocalToCloud().catch(function(err){
         logCaught("Cloud save failed:", err);
         setStatus("acctSyncStatus", "Couldn't sync: " + err.message, "err");
       });
@@ -2848,6 +2870,7 @@ var CYCLES={
       acctSignedIn.hidden = true;
       acctAdmin.hidden = true;
       isAdmin = false;
+      clearCloudPending(); // sync state resets on sign-out; don't carry a stale flag into a new session/account
       acctToggle.classList.remove("signedIn");
       acctDot.hidden = true;
       acctToggle.setAttribute("aria-label", "Account & sync — signed out");
@@ -2872,6 +2895,15 @@ var CYCLES={
     var msg = e.detail;
     if (!cloudUser) return;
     if (msg.exists) {
+      // This device has an edit the cloud never confirmed (e.g. edited then reloaded before the
+      // debounced flush landed). localStorage - which we already loaded into `state` - is ahead
+      // of this doc, so keep local and re-flush it rather than letting the older copy clobber
+      // the just-made change. (This was the "refresh wipes my change" bug.)
+      if (hasCloudPending()) {
+        setStatus("acctSyncStatus", "Kept this device's unsynced changes.", "ok");
+        writeLocalToCloud().catch(function(err){ logCaught("Re-flushing unsynced changes failed:", err); });
+        return;
+      }
       try {
         applyingRemoteState = true;
         state = sanitizeState(msg.data);
@@ -2886,7 +2918,7 @@ var CYCLES={
       }
     } else if (!seededCloudDoc) {
       seededCloudDoc = true;
-      window.Cloud.saveUserDoc(cloudUser.uid, state).catch(function(e){ logCaught("Seeding the cloud doc failed:", e); });
+      writeLocalToCloud().catch(function(e){ logCaught("Seeding the cloud doc failed:", e); });
     }
   });
 
