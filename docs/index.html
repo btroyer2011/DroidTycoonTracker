@@ -204,15 +204,21 @@ header .lede{
   appearance:none;cursor:pointer;width:38px;height:38px;padding:0;
   border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);
   display:flex;align-items:center;justify-content:center;
+  transition:border-color .2s ease, color .2s ease;
 }
 .acctToggle[hidden]{display:none}
 .acctToggle:active{background:var(--panel2)}
+/* Signed in: the border + status dot double as a sync indicator - green when this device's
+   progress is fully saved to the server, amber while a local change hasn't been pushed yet. */
 .acctToggle.signedIn{color:var(--green);border-color:var(--green)}
+.acctToggle.signedIn.pending{color:var(--amber);border-color:var(--amber)}
 .acctToggle .dot{
   position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;
   background:var(--dim);border:2px solid var(--bg);
+  transition:background-color .2s ease;
 }
 .acctToggle.signedIn .dot{background:var(--green)}
+.acctToggle.signedIn.pending .dot{background:var(--amber)}
 .acctToggle .dot[hidden]{display:none}
 
 @media (max-width:600px){
@@ -2811,9 +2817,19 @@ var CYCLES={
   // copy and re-flushes it, instead of the (stale) cloud doc overwriting the just-made change.
   var CLOUD_PENDING_KEY = "droidtycoon.cloudPending.v1";
   var localEditSeq = 0; // bumped on every genuine local edit (post sign-in)
-  function markCloudPending(){ try { localStorage.setItem(CLOUD_PENDING_KEY, "1"); } catch (e) { logCaught("Couldn't flag pending cloud sync:", e); } }
-  function clearCloudPending(){ try { localStorage.removeItem(CLOUD_PENDING_KEY); } catch (e) { logCaught("Couldn't clear pending cloud flag:", e); } }
+  function markCloudPending(){ try { localStorage.setItem(CLOUD_PENDING_KEY, "1"); } catch (e) { logCaught("Couldn't flag pending cloud sync:", e); } renderSyncBadge(); }
+  function clearCloudPending(){ try { localStorage.removeItem(CLOUD_PENDING_KEY); } catch (e) { logCaught("Couldn't clear pending cloud flag:", e); } renderSyncBadge(); }
   function hasCloudPending(){ try { return localStorage.getItem(CLOUD_PENDING_KEY) === "1"; } catch (e) { logCaught("Couldn't read pending cloud flag:", e); return false; } }
+  // Reflect sync state on the profile icon: amber border/dot while a local change is waiting to
+  // reach the server, green once it's confirmed. Only meaningful while signed in (the .signedIn
+  // class gates both colours); signed out, the icon stays neutral. Driven from the pending-flag
+  // choke points above plus the auth/userdoc handlers, so it always matches hasCloudPending().
+  function renderSyncBadge(){
+    if (!acctToggle) return;
+    acctToggle.classList.toggle("pending", !!cloudUser && hasCloudPending());
+    if (cloudUser) acctToggle.setAttribute("title", hasCloudPending() ? "Syncing changes…" : "All changes synced");
+    else acctToggle.removeAttribute("title");
+  }
   // Push the current local state to the cloud, clearing the pending flag once it lands - but
   // only if no newer edit arrived while the write was in flight (that edit re-set the flag and
   // scheduled its own write, so it must stay pending). Always returns a promise.
@@ -2866,6 +2882,7 @@ var CYCLES={
       setStatus("acctSyncStatus", "", "");
       acctToggle.classList.add("signedIn");
       acctDot.hidden = false;
+      renderSyncBadge(); // green if fully synced, amber if this device has an unflushed edit
       acctToggle.setAttribute("aria-label",
         "Account & sync — signed in as " + (cloudUser.displayName || cloudUser.email || "you"));
     } else {
