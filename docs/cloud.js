@@ -62,19 +62,28 @@ async function init() {
     getRedirectResult, onAuthStateChanged, signOut: fbSignOut
   } = authMod;
   const {
-    getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp,
-    enableIndexedDbPersistence
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+    getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp
   } = fsMod;
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app);
 
-  // Offline cache so the app still has the last-known progress/data with no network. Can
-  // legitimately fail (e.g. a second tab open without multi-tab support) - non-fatal either
-  // way, matches the try/catch-and-carry-on pattern the rest of the app already uses for
-  // localStorage access.
-  try { await enableIndexedDbPersistence(db); } catch (e) { /* ignore */ }
+  // Offline cache so the app still has the last-known progress/data with no network. Uses the
+  // modern FirestoreSettings.cache API (the old enableIndexedDbPersistence is deprecated) with
+  // persistentMultipleTabManager, so several open tabs SHARE one IndexedDB-backed cache instead
+  // of the first tab grabbing exclusive access and every other tab erroring out and falling back
+  // to a memory-only cache. If persistence can't initialize at all, fall back to the default
+  // (memory) instance - non-fatal, matching the try/catch-and-carry-on pattern the rest of the
+  // app already uses for storage access.
+  let db;
+  try {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+  } catch (e) {
+    db = getFirestore(app);
+  }
 
   function fire(name, detail) { window.dispatchEvent(new CustomEvent(name, { detail: detail })); }
 
