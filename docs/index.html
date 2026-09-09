@@ -1683,7 +1683,10 @@ var CYCLES={
         if (src && typeof src === "object") {
           for (var nm in src) {
             var r = src[nm];
-            if (typeof r === "number" && r >= 0 && r <= 5) out[nm] = r;
+            // Valid owned ranks are indices into RARITY_ORDER (0..length-1). A hard-coded 5
+            // here predated STELLAR (rank 6) being added, so it silently dropped any droid
+            // owned at the top rarity every time a cloud doc or backup was applied.
+            if (typeof r === "number" && r >= 0 && r <= RARITY_ORDER.length - 1) out[nm] = r;
           }
         }
         clean.owned[cy] = out;
