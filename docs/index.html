@@ -24,6 +24,7 @@
   --sell:#ffc233; --later:#ff4d4d; --keep:#3dff9a;
   --r-BASE:#c2cad6; --r-GOLD:#ffc233; --r-DIAMOND:#45d7ff;
   --r-BESKAR:#dfe5ec; --r-GALACTIC:#e05cff; --r-STELLAR:#ffe93b;
+  --r-KYBER:#7dff3a;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -379,6 +380,7 @@ section{margin-bottom:20px}
   width:100%;aspect-ratio:212/162;display:grid;place-items:center;
   color:var(--dim);font-size:10px;letter-spacing:.1em;background:#0c0c12;
 }
+.noimg-KYBER{color:var(--r-KYBER);font-weight:800}
 
 /* droid-name rarity-class colours (Common/Rare/Epic/Legendary/Mythic) - these tint the
    droid NAME, independent of the per-cell variation (BASE/GOLD/...) which keeps its own hue. */
@@ -392,6 +394,7 @@ section{margin-bottom:20px}
 .r-BASE{color:var(--r-BASE)} .r-GOLD{color:var(--r-GOLD)}
 .r-DIAMOND{color:var(--r-DIAMOND)} .r-BESKAR{color:var(--r-BESKAR)}
 .r-GALACTIC{color:var(--r-GALACTIC)} .r-STELLAR{color:var(--r-STELLAR)}
+.r-KYBER{color:var(--r-KYBER)}
 .r-RAINBOW{
   background:linear-gradient(90deg,#ff4d4d,#ffc233,#3dff9a,#45d7ff,#c46bff);
   -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -442,6 +445,7 @@ details[open] summary::after{transform:rotate(180deg)}
 .uOwn-BASE{--uOwnColor:var(--r-BASE)} .uOwn-GOLD{--uOwnColor:var(--r-GOLD)}
 .uOwn-DIAMOND{--uOwnColor:var(--r-DIAMOND)} .uOwn-BESKAR{--uOwnColor:var(--r-BESKAR)}
 .uOwn-GALACTIC{--uOwnColor:var(--r-GALACTIC)} .uOwn-STELLAR{--uOwnColor:var(--r-STELLAR)}
+.uOwn-KYBER{--uOwnColor:var(--r-KYBER)}
 .uOwn-RAINBOW{--uOwnColor:linear-gradient(90deg,#ff4d4d,#ffc233,#3dff9a,#45d7ff,#c46bff)}
 .chart{display:flex;flex-direction:column;gap:4px}
 .row{
@@ -517,6 +521,7 @@ details[open] summary::after{transform:rotate(180deg)}
 .cfx.r-BESKAR{color:#eef3fa;-webkit-text-fill-color:#eef3fa}
 .cfx.r-GALACTIC{color:#f24dff;-webkit-text-fill-color:#f24dff}
 .cfx.r-STELLAR{color:#ffe93b;-webkit-text-fill-color:#ffe93b}
+.cfx.r-KYBER{color:#7dff3a;-webkit-text-fill-color:#7dff3a}
 .cfx.r-RAINBOW{
   background:linear-gradient(92deg,#ff6b6b,#ffcf4d,#5dff9e,#3fd0ff,#4d90ff);
   -webkit-background-clip:text;background-clip:text;
@@ -1201,8 +1206,8 @@ window.SPRITES = {
 "VECT-ARM|RAINBOW":"data:image/jpeg;base64,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",
 };
 
-var COSTS=["10K","150K","975K","2.95M","5.35M","9.85M","14.5M","36M","89M","220M","550M","1.36B","3.4B","8.45B","21B","52B","130B","325B","810B","2T","3T","4.5T","6T","9T","13.5T","21T","32T","45T","68T","100T","150T","230T","345T","520T","778T"];
-var MAXLVL=35;
+var COSTS=["10K","150K","975K","2.95M","5.35M","9.85M","14.5M","36M","89M","220M","550M","1.36B","3.4B","8.45B","21B","52B","130B","325B","810B","2T","3T","4.5T","6T","9T","13.5T","21T","32T","45T","68T","100T","150T","230T","345T","520T","778T","1.2Q","2.5Q","4.5Q","8Q","15Q"];
+var MAXLVL=40;
 var CRYSTALS={12:11,13:16,14:22,15:29,16:37,17:46,18:56,19:67,20:79,21:92,22:106,23:121,24:137,25:154,26:172,27:191,28:221,29:232,30:254};
 var META={version:"Update v1.23 (25 Jul 2026)"};
 // Each droid's intrinsic rarity class (independent of the per-cell BASE/GOLD/... variation).
@@ -1402,49 +1407,69 @@ var CYCLES={
 ],
 };
 
-// All five cycles run to 35 rebirths. Cycles 1-4 carry their first 30 rebirths in the CYCLES
-// literal above; their Rebirths 31-35 (from the guide posters) are appended here, and Cycle 5
-// (documented 1-35) is defined in full below.
+// All five cycles run to 40 rebirths. Cycles 1-4 carry their first 30 rebirths in the CYCLES
+// literal above; their Rebirths 31-40 (from the guide posters; 36-40 are all KYBER) are appended
+// here, and Cycle 5 (documented 1-40) is defined in full below.
 (function extendCycles(){
   var mk = function(cells){ return cells.map(function(c){ return { n: c[0], r: c[1] }; }); };
-  // Rebirths 31-35 for Cycles 1-4, transcribed from the updated Path 1-4 posters.
+  // Rebirths 31-40 for Cycles 1-4, transcribed from the updated Path 1-4 posters.
   var tail = {
     1: [
       mk([["SEN-TRI","STELLAR"],["PROTO ROLLER","BESKAR"],["KX","BESKAR"]]), // 31
       mk([["OPTI-POD","GALACTIC"],["RIC","BESKAR"],["ORB WALKER","GALACTIC"]]), // 32
       mk([["B1 HEAVY","STELLAR"],["CYCLO-GRAV","GALACTIC"],["DRFT-R","GALACTIC"]]), // 33
       mk([["GROUNDMECH","STELLAR"],["BB","STELLAR"],["CYCLENS","GALACTIC"]]), // 34
-      mk([["SNOW MOUSE","STELLAR"],["IG","STELLAR"],["BB9","STELLAR"]]) // 35
+      mk([["SNOW MOUSE","STELLAR"],["IG","STELLAR"],["BB9","STELLAR"]]), // 35
+      mk([["BDX EXPLORER","KYBER"],["2BB","KYBER"],["A-LT","KYBER"]]), // 36
+      mk([["B1 HEAVY","KYBER"],["GROUNDMECH","KYBER"],["BB","KYBER"]]), // 37
+      mk([["R2","KYBER"],["R6","KYBER"],["BB9","KYBER"]]), // 38
+      mk([["R7","KYBER"],["PROTO ROLLER","KYBER"],["IG","KYBER"]]), // 39
+      mk([["SNOW MOUSE","KYBER"],["DRFT-R","KYBER"],["CYCLENS","KYBER"]]) // 40
     ],
     2: [
       mk([["LOADLIFTER","BESKAR"],["B2 SUPER","STELLAR"],["B2-RP","BESKAR"]]), // 31
       mk([["GUNRUNNER","GALACTIC"],["LEP","BESKAR"],["B1 HEAVY","GALACTIC"]]), // 32
       mk([["OPTI-STRK","GALACTIC"],["KX","GALACTIC"],["R2","STELLAR"]]), // 33
       mk([["LO","STELLAR"],["RIC","GALACTIC"],["R6","STELLAR"]]), // 34
-      mk([["R7","STELLAR"],["DRFT-R","STELLAR"],["CYCLENS","STELLAR"]]) // 35
+      mk([["R7","STELLAR"],["DRFT-R","STELLAR"],["CYCLENS","STELLAR"]]), // 35
+      mk([["B1 SECURITY","KYBER"],["R4","KYBER"],["R9","KYBER"]]), // 36
+      mk([["LO","KYBER"],["TRAK-R","KYBER"],["ORB WALKER","KYBER"]]), // 37
+      mk([["B2 SUPER","KYBER"],["B2 HEAVY","KYBER"],["B2-RP","KYBER"]]), // 38
+      mk([["MECHA DROID","KYBER"],["CYCLO-GRAV","KYBER"],["KX","KYBER"]]), // 39
+      mk([["RIC","KYBER"],["LOADLIFTER","KYBER"],["LEP","KYBER"]]) // 40
     ],
     3: [
       mk([["MECHA DROID","BESKAR"],["RIC-1200","BESKAR"],["B2 HEAVY","STELLAR"]]), // 31
       mk([["GROUNDMECH","GALACTIC"],["BB","GALACTIC"],["MO-TRAK","BESKAR"]]), // 32
       mk([["MONO-WLKR","GALACTIC"],["LOADLIFTER","GALACTIC"],["TRAK-R","STELLAR"]]), // 33
       mk([["LEP","GALACTIC"],["B2 SUPER","STELLAR"],["ORB WALKER","STELLAR"]]), // 34
-      mk([["PROTO ROLLER","STELLAR"],["RIC","STELLAR"],["KX","STELLAR"]]) // 35
+      mk([["PROTO ROLLER","STELLAR"],["RIC","STELLAR"],["KX","STELLAR"]]), // 35
+      mk([["ARG","KYBER"],["SENATE HOVER","KYBER"],["B-U4D","KYBER"]]), // 36
+      mk([["STRIKE-ORB","KYBER"],["AMP WALKER","KYBER"],["UTIL-TEC","KYBER"]]), // 37
+      mk([["HAUL-R","KYBER"],["LNG-SHOT","KYBER"],["OPTI-STRK","KYBER"]]), // 38
+      mk([["MONO-WLKR","KYBER"],["BB9","KYBER"],["RIC-1200","KYBER"]]), // 39
+      mk([["MO-TRAK","KYBER"],["TRI-TEK","KYBER"],["IG","KYBER"]]) // 40
     ],
     4: [
       mk([["CYCLO-GRAV","BESKAR"],["TRAK-R","STELLAR"],["TRI-TEK","BESKAR"]]), // 31
       mk([["IG","BESKAR"],["R2","GALACTIC"],["R6","GALACTIC"]]), // 32
       mk([["RIC-1200","GALACTIC"],["B2 HEAVY","STELLAR"],["BB9","GALACTIC"]]), // 33
       mk([["AMP WALKER","STELLAR"],["STRIKE-ORB","STELLAR"],["MO-TRAK","GALACTIC"]]), // 34
-      mk([["LEP","STELLAR"],["LOADLIFTER","STELLAR"],["B2-RP","STELLAR"]]) // 35
+      mk([["LEP","STELLAR"],["LOADLIFTER","STELLAR"],["B2-RP","STELLAR"]]), // 35
+      mk([["NAV-EX","KYBER"],["BAL-CORE","KYBER"],["VECT-ARM","KYBER"]]), // 36
+      mk([["SEN-TRI","KYBER"],["OPTI-POD","KYBER"],["GUNRUNNER","KYBER"]]), // 37
+      mk([["B1 HEAVY","KYBER"],["GROUNDMECH","KYBER"],["R7","KYBER"]]), // 38
+      mk([["PROTO ROLLER","KYBER"],["B2-RP","KYBER"],["SNOW MOUSE","KYBER"]]), // 39
+      mk([["DRFT-R","KYBER"],["CYCLENS","KYBER"],["KX","KYBER"]]) // 40
     ]
   };
   for (var c = 1; c <= 4; c++) {
-    // each cycle literal above holds Rebirths 1-30; appending 5 tail rows makes 35
+    // each cycle literal above holds Rebirths 1-30; appending 10 tail rows makes 40
     if (window.console && console.assert) console.assert(CYCLES[c].length === 30,
       "Cycle " + c + " should have 30 base rebirths, has " + CYCLES[c].length);
     tail[c].forEach(function(row){ CYCLES[c].push(row); });
   }
-  // Cycle 5 (Path 5 poster), Rebirths 1-35.
+  // Cycle 5 (Path 5 poster), Rebirths 1-40.
   CYCLES[5] = [
     mk([["MOUSE","BASE"],["GONK","BASE"],["ID10","BASE"]]), // 1
     mk([["ROLL-R","BASE"],["IMPERIAL PROBE","GOLD"],["2BB","BASE"]]), // 2
@@ -1480,7 +1505,12 @@ var CYCLES={
     mk([["LO","GALACTIC"],["TRAK-R","GALACTIC"],["DRFT-R","BESKAR"]]), // 32
     mk([["UTIL-TEC","STELLAR"],["R7","GALACTIC"],["TRI-TEK","GALACTIC"]]), // 33
     mk([["HAUL-R","STELLAR"],["LNG-SHOT","STELLAR"],["IG","GALACTIC"]]), // 34
-    mk([["MECHA DROID","STELLAR"],["RIC-1200","STELLAR"],["MO-TRAK","STELLAR"]]) // 35
+    mk([["MECHA DROID","STELLAR"],["RIC-1200","STELLAR"],["MO-TRAK","STELLAR"]]), // 35
+    mk([["ROLL-R","KYBER"],["HOV-R","KYBER"],["MOUSE","KYBER"]]), // 36
+    mk([["BB","KYBER"],["R2","KYBER"],["R6","KYBER"]]), // 37
+    mk([["LO","KYBER"],["TRAK-R","KYBER"],["MECHA DROID","KYBER"]]), // 38
+    mk([["CYCLO-GRAV","KYBER"],["OPTI-STRK","KYBER"],["RIC","KYBER"]]), // 39
+    mk([["LOADLIFTER","KYBER"],["LEP","KYBER"],["RIC-1200","KYBER"]]) // 40
   ];
 })();
 
@@ -1519,7 +1549,7 @@ var CYCLES={
 
   // rarity low -> high; a droid upgrades up this ladder, so owning it at one rank means you
   // already have every rank below it.
-  var RARITY_ORDER = ["BASE", "GOLD", "DIAMOND", "RAINBOW", "BESKAR", "GALACTIC", "STELLAR"];
+  var RARITY_ORDER = ["BASE", "GOLD", "DIAMOND", "RAINBOW", "BESKAR", "GALACTIC", "STELLAR", "KYBER"];
   function rarityRank(x){ return RARITY_ORDER.indexOf(x); }
   // A droid's intrinsic rarity class, used to tint its name. Falls back to COMMON.
   function rarityClass(name){ return DROID_RARITY[name] || "COMMON"; }
@@ -1571,6 +1601,7 @@ var CYCLES={
   // trying to safely escape it at each of those call sites - a value that isn't on the list is
   // rejected outright, so nothing ever reaches the page unescaped in the first place.
   var VALID_RARITIES = RARITY_ORDER.concat(["?"]);
+  var BUNDLED_MAXLVL = MAXLVL; // rebirth count shipped in this file, before any cloud update
   // Same idea for a rarity-CLASS name (Common/Rare/Epic/...): it ends up as a CSS class suffix
   // too (rc-<class>), so it's restricted to a safe identifier shape rather than escaped.
   var SAFE_IDENT = /^[A-Za-z][A-Za-z0-9_]*$/;
@@ -1639,6 +1670,13 @@ var CYCLES={
   function applyGameData(data){
     var v = validateGameData(data);
     if (!v.ok) { console.warn("[gamedata] rejected invalid update:", v.errors); return false; }
+    // A dataset published before the bundled tables grew (e.g. a 35-rebirth publish from
+    // before Rebirths 36-40 / KYBER were added) is stale: applying it would silently chop
+    // the new rebirths off. Keep the newer bundled data until a full-length set is published.
+    if (parseInt(data.maxlvl, 10) < BUNDLED_MAXLVL) {
+      console.warn("[gamedata] ignored stale update: " + data.maxlvl + " rebirths < bundled " + BUNDLED_MAXLVL);
+      return false;
+    }
 
     COSTS = data.costs;
     MAXLVL = parseInt(data.maxlvl, 10);
@@ -1779,7 +1817,7 @@ var CYCLES={
   function art(d, cls){
     var src = S[d.n + "|" + d.r];
     return src ? '<img class="' + cls + '" src="' + src + '" alt="' + esc(d.n) + '">'
-               : '<div class="noimg">' + esc(d.r) + '</div>';
+               : '<div class="noimg noimg-' + esc(d.r) + '">' + esc(d.r) + '</div>';
   }
 
   // The cycle pills are built once and only their pressed state changes, so element
