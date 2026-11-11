@@ -171,6 +171,36 @@ header .lede{
    glass only shows below 600px - so the reset button stays centred on the row either way
    instead of drifting toward whichever side currently has fewer icons. */
 .rowSide{display:flex;align-items:center;gap:6px;width:82px}
+/* centre column: the Super Rebirth button plus the "hide owned" switch beside it */
+.rowMid{justify-self:center;display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+/* on/off switch: a pill track with a white knob - grey and knob-left when off, green and
+   knob-right when on */
+.hideSw{
+  appearance:none;border:0;background:transparent;padding:0;cursor:pointer;flex:none;
+  display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim);
+}
+.swTrack{
+  position:relative;width:40px;height:22px;border-radius:11px;flex:none;
+  background:#4a4d5c;box-shadow:inset 0 1px 3px rgba(0,0,0,.45);transition:background-color .2s ease;
+}
+.swKnob{
+  position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.5);transition:transform .2s ease;
+}
+.hideSw[aria-checked="true"] .swTrack{background:var(--green)}
+.hideSw[aria-checked="true"] .swKnob{transform:translateX(18px)}
+.hideSw[aria-checked="true"] .swCap{color:var(--green)}
+.hideSw:focus-visible .swTrack{outline:2px solid var(--cyan);outline-offset:2px}
+/* caption sits under the switch (not beside it) so the pair stays narrow enough for the
+   Super Rebirth button to keep to one line on phones */
+.swCap{font-family:inherit;font-size:7px;font-weight:700;line-height:1.05;letter-spacing:.06em;
+  text-transform:uppercase;text-align:center}
+/* never let the button shrink below its longest word ("REBIRTH" spilling past its border) -
+   on the narrowest phones it wraps to two lines instead, as it always has there */
+.rowMid .reset{min-width:auto}
+/* (.rowMid-scoped so these beat the base .reset rule further down the stylesheet) */
+@media (max-width:600px){ .rowMid .reset{padding:8px 10px;letter-spacing:.1em} }
+@media (max-width:420px){ .rowMid .reset{padding:8px 8px;letter-spacing:.04em} .rowMid{gap:4px} }
 .rowSide.rowLeft{justify-self:start}
 .rowSide.rowRight{justify-self:end;justify-content:flex-end}
 .reset{
@@ -695,7 +725,16 @@ footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.6;margin-
         </svg>
       </button>
     </div>
-    <button class="reset" id="reset">Super Rebirth</button>
+    <div class="rowMid">
+      <button class="reset" id="reset">Super Rebirth</button>
+      <!-- Hides droids you already own (at the highest rarity needed) from the Unique droids
+           view. The by-rebirth chart always shows everything. -->
+      <button class="hideSw" id="hideDone" role="switch" aria-checked="false"
+              aria-label="Hide completed droids in the Unique droids view">
+        <span class="swTrack" aria-hidden="true"><span class="swKnob"></span></span>
+        <span class="swCap" aria-hidden="true">Hide<br>owned</span>
+      </button>
+    </div>
     <div class="rowSide rowRight">
       <button class="searchToggle" id="searchToggle" aria-label="Search a droid" aria-expanded="false">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
@@ -2077,6 +2116,28 @@ var CYCLES={
   var cvByRebirth = document.getElementById("cvByRebirth");
   var cvUnique = document.getElementById("cvUnique");
 
+  // "Hide completed droids": a per-device view preference like the chart view above. When on,
+  // droids you already own at the highest rarity needed drop out of the Unique droids view (see
+  // renderUniqueChart); the by-rebirth chart is never filtered.
+  var HIDEDONE_KEY = "droidtycoon.hideCompleted.v1";
+  var hideDone = false;
+  try { hideDone = localStorage.getItem(HIDEDONE_KEY) === "1"; }
+  catch (e) { logCaught("Couldn't read the saved hide-completed preference:", e); }
+  var hideDoneBtn = document.getElementById("hideDone");
+  var uniqueHiddenCount = 0;   // set by renderUniqueChart
+  // sync the switch; its tooltip says how many owned droids it is hiding in the unique view
+  function renderHideDone(){
+    hideDoneBtn.setAttribute("aria-checked", String(hideDone));
+    hideDoneBtn.title = "Hide owned droids in the Unique droids view" +
+      (hideDone ? " (" + uniqueHiddenCount + " hidden)" : "");
+  }
+  hideDoneBtn.addEventListener("click", function(){
+    hideDone = !hideDone;
+    try { localStorage.setItem(HIDEDONE_KEY, hideDone ? "1" : "0"); }
+    catch (e) { logCaught("Couldn't save the hide-completed preference:", e); }
+    renderChartView();
+  });
+
   // The "unique droids" view: one tile per droid, at the highest rarity it's needed at within the
   // current sell-early threshold. Only appearances at rebirths <= threshold count (an appearance
   // exactly at the threshold counts; anything beyond it is ignored, and a droid needed only beyond
@@ -2102,10 +2163,12 @@ var CYCLES={
       document.getElementById("chart").innerHTML =
         '<p class="searchHint">No droids are needed at or before Rebirth ' + T +
         ' in Cycle ' + state.cycle + '. Raise the &ldquo;sell early&rdquo; rebirth in Settings to see more.</p>';
+      uniqueHiddenCount = 0;
       return;
     }
-    var h = '<div class="uniqueGrid">';
+    var h = '<div class="uniqueGrid">', hiddenCount = 0;
     order.forEach(function(e){
+      if (hideDone && ownedTop(e.n) >= e.top) { hiddenCount++; return; }   // fully owned
       var badges = '<div class="cfut"><i class="cfMark">↻</i>' +
         e.apps.map(function(a){
           return '<b class="cfx r-' + a.rarity + '" title="Rebirth ' + a.level + ' · ' +
@@ -2131,7 +2194,12 @@ var CYCLES={
            '<div class="cn rc-' + rarityClass(e.n) + '">' + esc(e.n) + '</div></div></div>';
     });
     h += '</div>';
+    if (hiddenCount === order.length) {
+      h = '<p class="searchHint">You own every droid needed up to Rebirth ' + T +
+          ' at the highest rarity. Turn off the &ldquo;Hide owned&rdquo; switch next to Super Rebirth to see them.</p>';
+    }
     document.getElementById("chart").innerHTML = h;
+    uniqueHiddenCount = hiddenCount;
   }
 
   // Render whichever chart view is active, and keep the toggle's pressed state in sync.
@@ -2140,6 +2208,7 @@ var CYCLES={
     cvUnique.setAttribute("aria-pressed", String(chartView === "unique"));
     if (chartView === "unique") renderUniqueChart();
     else renderChart();
+    renderHideDone();
   }
 
   function setChartView(view){
